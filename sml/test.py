@@ -1,8 +1,8 @@
-a = 5
-#print(a)
+import numpy as np 
 
-for i in range(5):
-    print(i)
+A = np.array([1,2,3])
+
+print(A)
 
 
 
