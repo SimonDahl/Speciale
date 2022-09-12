@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
+import PIL
+PIL.PILLOW_VERSION = PIL.__version__
 from torchvision import datasets, transforms
 from torch.autograd import Variable
 from torchvision.utils import save_image
