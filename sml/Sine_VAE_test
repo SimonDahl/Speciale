@@ -1,0 +1,32 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import numpy as np
+from torchvision import datasets, transforms
+from torch.autograd import Variable
+from torchvision.utils import save_image
+import matplotlib.pyplot as plt
+
+def sin_func(x):
+  return np.sin(x)
+
+
+
+n = 4096*8
+nt = 128*2
+#f = 3.0                  # frequency in Hz
+
+t = np.linspace(0,1,nt)  # time stamps in s
+x = np.zeros((n,nt))
+phase = np.random.uniform(-np.pi, np.pi, size=n)
+for i in range(n):
+    f = np.random.uniform(1,5) # frequency in Hz
+    x[i,:] = np.sin(2*np.pi*f*t + phase[i] )
+    
+plt.figure(figsize=(8,2))
+for i in range(2):
+    plt.plot(t,x[np.random.randint(0,nt-1), :])
+    plt.legend(['1st signal', '2nd signal'], loc='upper right')
+plt.show()
+
