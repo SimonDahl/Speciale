@@ -125,3 +125,10 @@ for epoch in range(1, n_epoch+1):
 
     print('[%d/%d]: loss_d: %.3f, loss_g: %.3f' % (
             (epoch), n_epoch, torch.mean(torch.FloatTensor(D_losses)), torch.mean(torch.FloatTensor(G_losses))))
+     
+    
+with torch.no_grad():
+    test_z = Variable(torch.randn(bs, z_dim))
+    generated = G(test_z)
+
+    save_image(generated.view(generated.size(0), 1, 28, 28), './samples/sample_' + '.png')
