@@ -1,0 +1,12 @@
+Kommandoer på egen mac
+ssh sXXXXXX@login.gbar.dtu.dk	(login)				
+rsync -avh -e ssh  sXXXXXX@transfer.gbar.dtu.dk:~/path/to/folder/at/dtu/ /path/to/local/folder/		(flyt fil/folder fra dtu til lokal computer)
+scp /path/to/local/folder/ sXXXXXX@transfer.gbar.dtu.dk:~/path/to/folder/at/dtu/			(flyt fil/folder fra lokal computer til dtu)
+
+
+Kommandoer på dtu server:
+bsub  < shell_file.sh		(submitter jobbet beskrevet i shell filen)
+qstat que_name			(lister egne jobs i køen med det angivne navn, og skriver hvor mange andre der er i kø. Undlad kø navn for at list alle køer)
+bstat				(opremser egne jobs som er i gang/kø)
+bkill job_id			(sletter job med angivet job id)
+bkill -u sXXXXXX		(sletter alle egne jobs, indsæt eget studienummer)

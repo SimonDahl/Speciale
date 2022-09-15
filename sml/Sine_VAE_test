@@ -26,9 +26,23 @@ for i in range(n):
     f = np.random.uniform(1,5) # frequency in Hz
     x[i,:] = np.sin(2*np.pi*f*t + phase[i] )
     
-plt.figure(figsize=(8,2))
+""" plt.figure(figsize=(8,2))
 for i in range(2):
     plt.plot(t,x[np.random.randint(0,nt-1), :])
     plt.legend(['1st signal', '2nd signal'], loc='upper right')
 plt.show()
+ """
+
+from sklearn.model_selection import train_test_split
+
+# split into test, validation, and training sets
+x_temp, x_test, _, _ = train_test_split(x, x, test_size=0.05)
+x_train, x_valid, _, _ = train_test_split(x_temp,
+                                          x_temp,
+                                          test_size=0.1)
+n_train = len(x_train)
+n_valid = len(x_valid)
+n_test = len(x_test)
+
+print(n_train)
 

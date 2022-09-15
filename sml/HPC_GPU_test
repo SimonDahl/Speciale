@@ -3,11 +3,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import PIL
-PIL.PILLOW_VERSION = PIL.__version__
 from torchvision import datasets, transforms
 from torch.autograd import Variable
 from torchvision.utils import save_image
+
+# Device configuration
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 bs = 100
 
@@ -15,6 +16,7 @@ bs = 100
 transform = transforms.Compose([transforms.ToTensor(),
 transforms.Normalize((0.5,), (0.5,))
 ])
+
 
 train_dataset = datasets.MNIST(root='./mnist_data/', train=True, transform=transform, download=True)
 test_dataset = datasets.MNIST(root='./mnist_data/', train=False, transform=transform, download=False)
@@ -55,13 +57,15 @@ class Discriminator(nn.Module):
         x = F.leaky_relu(self.fc3(x), 0.2)
         x = F.dropout(x, 0.3)
         return torch.sigmoid(self.fc4(x))
-
+    
+    
 # build network
 z_dim = 100
 mnist_dim = train_dataset.train_data.size(1) * train_dataset.train_data.size(2)
 
-G = Generator(g_input_dim = z_dim, g_output_dim = mnist_dim)#.to(device)
-D = Discriminator(mnist_dim)#.to(device)
+G = Generator(g_input_dim = z_dim, g_output_dim = mnist_dim).to(device)
+D = Discriminator(mnist_dim).to(device)
+
 
 # loss
 criterion = nn.BCELoss() 
@@ -77,15 +81,15 @@ def D_train(x):
 
     # train discriminator on real
     x_real, y_real = x.view(-1, mnist_dim), torch.ones(bs, 1)
-    x_real, y_real = Variable(x_real), Variable(y_real)#.to(device))
+    x_real, y_real = Variable(x_real.to(device)), Variable(y_real.to(device))
 
     D_output = D(x_real)
     D_real_loss = criterion(D_output, y_real)
     D_real_score = D_output
 
     # train discriminator on facke
-    z = Variable(torch.randn(bs, z_dim))
-    x_fake, y_fake = G(z), Variable(torch.zeros(bs, 1))
+    z = Variable(torch.randn(bs, z_dim).to(device))
+    x_fake, y_fake = G(z), Variable(torch.zeros(bs, 1).to(device))
 
     D_output = D(x_fake)
     D_fake_loss = criterion(D_output, y_fake)
@@ -102,8 +106,8 @@ def G_train(x):
     #=======================Train the generator=======================#
     G.zero_grad()
 
-    z = Variable(torch.randn(bs, z_dim))#.to(device))
-    y = Variable(torch.ones(bs, 1))#.to(device))
+    z = Variable(torch.randn(bs, z_dim).to(device))
+    y = Variable(torch.ones(bs, 1).to(device))
 
     G_output = G(z)
     D_output = D(G_output)
@@ -115,7 +119,6 @@ def G_train(x):
         
     return G_loss.data.item()
 
-
 n_epoch = 200
 for epoch in range(1, n_epoch+1):           
     D_losses, G_losses = [], []
@@ -125,12 +128,10 @@ for epoch in range(1, n_epoch+1):
 
     print('[%d/%d]: loss_d: %.3f, loss_g: %.3f' % (
             (epoch), n_epoch, torch.mean(torch.FloatTensor(D_losses)), torch.mean(torch.FloatTensor(G_losses))))
-     
+    
     
 with torch.no_grad():
-    test_z = Variable(torch.randn(bs, z_dim))
+    test_z = Variable(torch.randn(bs, z_dim).to(device))
     generated = G(test_z)
 
-    save_image(generated.view(generated.size(0), 1, 28, 28), './samples/sample_' + '.png')
-    
-    
+    save_image(generated.view(generated.size(0), 1, 28, 28), '.sample_' + '.png')
