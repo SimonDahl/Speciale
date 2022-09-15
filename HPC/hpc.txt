@@ -1,3 +1,7 @@
+
+log ind i command prompt 
+ssh gbar1 
+
 Kommandoer på egen mac
 ssh sXXXXXX@login.gbar.dtu.dk	(login)				
 rsync -avh -e ssh  sXXXXXX@transfer.gbar.dtu.dk:~/path/to/folder/at/dtu/ /path/to/local/folder/		(flyt fil/folder fra dtu til lokal computer)
