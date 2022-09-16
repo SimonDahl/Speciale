@@ -1,0 +1,18 @@
+
+login 
+
+	ssh gbar1
+	linussh 
+	bsub  < filnavn.sh
+
+fil transfer : 
+
+scp "C:\Users\Ejer\OneDrive - Danmarks Tekniske Universitet\Dokumenter\GitHub\Speciale\sml\" s162695@transfer.gbar.dtu.dk:~/speciale
+
+fill fra hpc til pc:
+
+filezilla:
+Host:     transfer.gbar.dtu.dk
+Username: Your DTU ID
+Password: ...
+Port:     22
