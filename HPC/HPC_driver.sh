@@ -28,11 +28,12 @@ module purge
 module load python3/3.10.2
 module load cuda/11.3
 module load cudnn/v8.2.0.53-prod-cuda-11.3
+module load matplotlib/3.5.1-numpy-1.22.2-python-3.10.2
 
 
 ## Konstant argument til programmet
 
 ## Hvis man skal lave et loop hvor programmet modtager forskellige argumenter.
-python3 HPC_GPU_test.py 
+python3 GAN_sine_V3.py 
 
 ## Har man oprettet jobbet som en liste af jobs my_job_name[1-100] så kan man bruge dette indeks fra 1 til 100 som argument til sit program med argumentet $LSB_JOBINDEX
