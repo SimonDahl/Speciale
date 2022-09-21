@@ -1,4 +1,6 @@
 # prerequisites
+from ast import arg
+from tokenize import Double
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -17,6 +19,9 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--n_epochs',help='Number of epochs',type=int)
+parser.add_argument('--z_dim',help='Number of z dims',type=int)
+parser.add_argument('--n_waves',help='number of waves',type=int)
+parser.add_argument('--lr',help='Learning rate',type=float)
 
 args = parser.parse_args()
 
@@ -25,22 +30,26 @@ args = parser.parse_args()
 # Batch size 
 bs = 300
 # Dimension of z - noise vector 
-z_dim = 100
-
+z_dim = args.z_dim
+#z_dim = 100
 # loss 
 criterion = nn.BCELoss() 
-# learning rate
-lr = 0.0002 
+# learning rate # 0.0002
+lr = args.lr 
+#lr = 0.0002
+
 np.random.seed(2022) # random seed 
 # number of epochs 
 n_epochs = args.n_epochs
+# n_epochs = 1
 
 #%% Generate sine wave data
 
 def sin_func(x):
   return np.sin(x)
 
-n = 30000              # number of waves
+n = args.n_waves              # number of waves
+#n = 3000
 nt = 128*4              # time steps pr wave 
 #f = 3.0                  # frequency in Hz
 
@@ -196,7 +205,7 @@ with torch.no_grad():
     
     #plt.show()
     fig.suptitle('Generated Samples number of epochs '+ str(n_epochs),fontsize="x-large")
-    plt.savefig(str(n_epochs)+'.png')
+    plt.savefig('N_epochs '+str(n_epochs)+' z_dim '+str(z_dim)+' n_waves '+str(n)+' lr '+str(lr)+'.png')
          
                                                                                                                         
 # %%
