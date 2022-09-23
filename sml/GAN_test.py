@@ -20,7 +20,6 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('--n_epochs',help='Number of epochs',type=int)
 parser.add_argument('--z_dim',help='Number of z dims',type=int)
-parser.add_argument('--n_waves',help='number of waves',type=int)
 parser.add_argument('--lr',help='Learning rate',type=float)
 
 args = parser.parse_args()
@@ -28,7 +27,7 @@ args = parser.parse_args()
 #%% Hyperparamters 
 
 # Batch size 
-bs = 300
+bs = 500
 # Dimension of z - noise vector 
 z_dim = args.z_dim
 #z_dim = 100
@@ -41,14 +40,14 @@ lr = args.lr
 np.random.seed(2022) # random seed 
 # number of epochs 
 n_epochs = args.n_epochs
-# n_epochs = 1
+#n_epochs = 1
 
 #%% Generate sine wave data
 
 def sin_func(x):
   return np.sin(x)
 
-n = args.n_waves              # number of waves
+n = 50000           # number of waves
 #n = 3000
 nt = 128*4              # time steps pr wave 
 #f = 3.0                  # frequency in Hz
@@ -83,15 +82,17 @@ class Generator(nn.Module):
         self.fc1 = nn.Linear(g_input_dim, g_input_dim*2)
         self.fc2 = nn.Linear(self.fc1.out_features, self.fc1.out_features*2)
         self.fc3 = nn.Linear(self.fc2.out_features, self.fc2.out_features*2)
-        self.fc4 = nn.Linear(self.fc3.out_features, g_output_dim)
+        self.fc4 = nn.Linear(self.fc3.out_features, self.fc3.out_features*2)
+        self.fc5 = nn.Linear(self.fc4.out_features, g_output_dim)
     
     # forward method
     def forward(self, x): 
         x = F.leaky_relu(self.fc1(x), 0.1) # leaky relu, with slope angle 
         x = F.leaky_relu(self.fc2(x), 0.1) 
         x = F.leaky_relu(self.fc3(x), 0.1)
+        x = F.leaky_relu(self.fc4(x), 0.1)
         #return torch.tanh(self.fc4(x))
-        return self.fc4(x) 
+        return self.fc5(x) 
     
 class Discriminator(nn.Module):
     def __init__(self, d_input_dim):
@@ -99,7 +100,8 @@ class Discriminator(nn.Module):
         self.fc1 = nn.Linear(d_input_dim, d_input_dim *4)
         self.fc2 = nn.Linear(self.fc1.out_features, self.fc1.out_features//2)
         self.fc3 = nn.Linear(self.fc2.out_features, self.fc2.out_features//2)
-        self.fc4 = nn.Linear(self.fc3.out_features, 1)  # output dim = 1 for binary classification 
+        self.fc4 = nn.Linear(self.fc3.out_features, self.fc3.out_features//2)
+        self.fc5 = nn.Linear(self.fc4.out_features, 1)  # output dim = 1 for binary classification 
     
     # forward method
     def forward(self, x):
@@ -109,7 +111,9 @@ class Discriminator(nn.Module):
         x = F.dropout(x, 0.3)
         x = F.leaky_relu(self.fc3(x), 0.2)
         x = F.dropout(x, 0.3)
-        return torch.sigmoid(self.fc4(x))  # sigmoid for probaility 
+        x = F.leaky_relu(self.fc4(x), 0.2)
+        x = F.dropout(x, 0.3)
+        return torch.sigmoid(self.fc5(x))  # sigmoid for probaility 
     
     
 # build network
@@ -203,9 +207,9 @@ with torch.no_grad():
             ax[i,j].set_title('Sample ' + str(c))
             c+= 1
     
+    
+    fig.suptitle('n_epochs ' +str(n_epochs)+' z_dim '+str(z_dim)+' lr '+str(lr),fontsize="x-large")
     #plt.show()
-    fig.suptitle('Generated Samples number of epochs '+ str(n_epochs),fontsize="x-large")
-    plt.savefig('N_epochs '+str(n_epochs)+' z_dim '+str(z_dim)+' n_waves '+str(n)+' lr '+str(lr)+'.png')
-         
+    plt.savefig('./output/GAN/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr)+'.png')     
                                                                                                                         
 # %%

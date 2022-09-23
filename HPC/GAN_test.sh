@@ -6,9 +6,9 @@
 #BSUB -gpu "num=1:mode=exclusive_process"
 
 ##Navn på job. Hvis man vil lave mange jobs kan man skrive my_job_name[1-100] så får man 100 jobs.
-#BSUB -J GPU_test
+#BSUB -J GAN_test
 ##Output log fil. Folderen skal eksistere før jobbet submittes. Job nummer indsættes automatisk ved %J i filnavnet.
-#BSUB -o output/GPU_test-%J.out
+#BSUB -o output/GAN_test-%J.out
 ##Antal cpu kerner
 #BSUB -n 1
 ##Om kernerne må være på forskellige computere
@@ -34,19 +34,17 @@ module load matplotlib/3.5.1-numpy-1.22.2-python-3.10.2
 ## Konstant argument til programmet
 
 ## Hvis man skal lave et loop hvor programmet modtager forskellige argumenter.
-for n_epochs in 500 1000
+for n_epochs in 1000 2000
 do
-	for z_dim in 50 100 200
+	for z_dim in 100 200 500
 	do
-		for n_waves in 3000 30000 60000
-		do
-			for lr in 0.001 0.0002 0.00002
-			do 
+		for lr in 1e-4 1e-5 1e-6 
+		do 
 
-			python3 GAN_test.py --n_epochs=$n_epochs --z_dim=$z_dim --n_waves=$n_waves --lr=$lr
-			done
+		python3 GAN_test.py --n_epochs=$n_epochs --z_dim=$z_dim --lr=$lr
 		done
 	done
 done
+
 
 ## Har man oprettet jobbet som en liste af jobs my_job_name[1-100] så kan man bruge dette indeks fra 1 til 100 som argument til sit program med argumentet $LSB_JOBINDEX

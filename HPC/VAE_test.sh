@@ -35,6 +35,16 @@ module load matplotlib/3.5.1-numpy-1.22.2-python-3.10.2
 
 ## Hvis man skal lave et loop hvor programmet modtager forskellige argumenter.
 
-python3 VAE_test.py 
+for n_epochs in 200 400 600 1000 
+do
+	for z_dim_size in 3 5 10
+	do
+		for lr in 5e-2 5e-3 5e-4 5e-5
+		do
+ 
+		python3 VAE_test.py --n_epochs=$n_epochs --z_dim_size=$z_dim_size --lr=$lr
+		done
+	done
+done 
 
 ## Har man oprettet jobbet som en liste af jobs my_job_name[1-100] så kan man bruge dette indeks fra 1 til 100 som argument til sit program med argumentet $LSB_JOBINDEX

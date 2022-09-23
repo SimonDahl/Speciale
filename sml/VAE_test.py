@@ -9,22 +9,30 @@ from torchvision.utils import save_image
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+import argparse
 
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--n_epochs',help='Number of epochs',type=int)
+parser.add_argument('--z_dim_size',help='Number of z dims',type=int)
+parser.add_argument('--lr',help='Learning rate',type=float)
+
+args = parser.parse_args()
 
 #%%
 # batch size 
-bs = 300
-n_epochs = 20
+bs = 500
+n_epochs = args.n_epochs
 
 # latent space size 
-z_dim_size = 3
-learning_rate = 3e-4
+z_dim_size = args.z_dim_size
+lr = args.lr   #3e-4
 
 #%%
 def sin_func(x):
   return np.sin(x)
 
-n = 30000              # number of waves
+n = 50000              # number of waves
 nt = 128*4              # time steps pr wave 
 #f = 3.0                  # frequency in Hz
 
@@ -119,7 +127,7 @@ if torch.cuda.is_available():
 
 #%%
 
-optimizer = optim.Adam(vae.parameters(),lr=learning_rate)
+optimizer = optim.Adam(vae.parameters(),lr=lr)
 def loss_function(recon_x, x, mu, log_var):
     MSE = F.mse_loss(recon_x, x.view(-1, nt), reduction='sum')
     KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
@@ -199,7 +207,7 @@ y = decoded.detach().numpy()
 
 plt.plot(t,y.flatten(),label='Decoded')
 plt.legend(loc='upper right')
-plt.savefig('VAE Encode_Decode n_epochs '+str(n_epochs)+'.png')
+plt.savefig('./output/VAE/'+'Encode_Decode n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+'.png')
 
 
 
@@ -224,7 +232,7 @@ with torch.no_grad():
             c+= 1
 
 
-    fig.suptitle('Generated Samples number of epochs '+ str(n_epochs),fontsize="x-large")
-    plt.savefig('Test '+str(n_epochs)+'.png')
+    fig.suptitle('n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr),fontsize="x-large")
+    plt.savefig('./output/VAE/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+'.png')
     #plt.show()
 
