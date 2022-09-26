@@ -35,11 +35,11 @@ module load matplotlib/3.5.1-numpy-1.22.2-python-3.10.2
 
 ## Hvis man skal lave et loop hvor programmet modtager forskellige argumenter.
 
-for n_epochs in 200 400 600 1000 
+for n_epochs in 100 200 500 
 do
-	for z_dim_size in 3 5 10
+	for z_dim_size in 3 4 5 10
 	do
-		for lr in 5e-2 5e-3 5e-4 5e-5
+		for lr in 1e-4 5e-4 5e-5 1e-6 5e-6 1e-7  
 		do
  
 		python3 VAE_test.py --n_epochs=$n_epochs --z_dim_size=$z_dim_size --lr=$lr

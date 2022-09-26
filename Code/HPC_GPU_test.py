@@ -119,7 +119,7 @@ def G_train(x):
         
     return G_loss.data.item()
 
-n_epoch = 200
+n_epoch = 1000
 for epoch in range(1, n_epoch+1):           
     D_losses, G_losses = [], []
     for batch_idx, (x, _) in enumerate(train_loader):

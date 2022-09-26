@@ -24,14 +24,14 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 #%%
 # batch size 
 bs = 500
-#n_epochs = args.n_epochs
-n_epochs = 1
+n_epochs = args.n_epochs
+#n_epochs = 1
 # latent space size 
-#z_dim_size = args.z_dim_size
-z_dim_size = 3
+z_dim_size = args.z_dim_size
+#z_dim_size = 3
 
-#lr = args.lr   #3e-4
-lr = 3e-4
+lr = args.lr   #3e-4
+#lr = 3e-4
 
 #%%
 def sin_func(x):
@@ -146,7 +146,7 @@ def train(epoch):
     vae.train()
     train_loss = 0
     for batch_idx, (data) in enumerate(train_loader):
-      #  data = data.cuda()
+        data = data.cuda()
         optimizer.zero_grad()
         
         recon_batch, mu, log_var = vae(data)
@@ -165,7 +165,7 @@ def test():
     test_loss= 0
     with torch.no_grad():
         for data in test_loader:
-         #   data = data.cuda()
+            data = data.cuda()
             recon, mu, log_var = vae(data)
             
             # sum up batch loss
@@ -189,7 +189,7 @@ for epoch in range(1, n_epochs):
 data_point = []
 
 for data in test_loader:
-   # data = data.cuda()
+    data = data.cuda()
     data_point.append(data)
 
 
@@ -232,7 +232,7 @@ with torch.no_grad():
     for i in range(0,2):
         for j in range(0,4):
             z = Variable(torch.randn(z_dim_size).to(device))
-            sample = vae.decoder(z)#.cuda()
+            sample = vae.decoder(z).cuda()
             y = sample.cpu().detach().numpy()
             ax[i,j].plot(t,y.flatten())
             ax[i,j].set_title('Sample ' + str(c))

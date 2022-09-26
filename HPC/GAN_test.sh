@@ -34,11 +34,11 @@ module load matplotlib/3.5.1-numpy-1.22.2-python-3.10.2
 ## Konstant argument til programmet
 
 ## Hvis man skal lave et loop hvor programmet modtager forskellige argumenter.
-for n_epochs in 1000 2000
+for n_epochs in 500 1000
 do
-	for z_dim in 100 200 500
+	for z_dim in 10 50 100 200
 	do
-		for lr in 1e-4 1e-5 1e-6 
+		for lr in 1e-1 1e-2 1e-3 1e-4
 		do 
 
 		python3 GAN_test.py --n_epochs=$n_epochs --z_dim=$z_dim --lr=$lr
