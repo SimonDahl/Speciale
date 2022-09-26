@@ -126,6 +126,8 @@ h3 = h2//2
 h4 = h3//2
 
 vae = VAE(x_dim=nt, h_dim1=h1, h_dim2=h2,h_dim3=h3,h_dim4=h4, z_dim=z_dim_size)
+
+
 if torch.cuda.is_available():
     vae.cuda()
 
