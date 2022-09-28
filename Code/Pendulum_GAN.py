@@ -17,18 +17,28 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from scipy.integrate import odeint
 
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--n_epochs',help='Number of epochs',type=int)
+parser.add_argument('--z_dim',help='Number of z dims',type=int)
+parser.add_argument('--lr',help='Learning rate',type=float)
+
+args = parser.parse_args()
+
+
 #%% Hyperparameters
 
-bs = 5
-n_data = 10
-nt = 128*4
+bs = 500
+n_data = 20000
+timesteps = 500
 slope = 0.01
 drop = 0.2
 criterion = nn.BCELoss() 
-lr = 0.01
+lr = args.lr
 np.random.seed(2022)
-n_epochs = 10
-z_dim = 100
+n_epochs = args.n_epochs
+z_dim = args.z_dim
 
 #%% Generate data 
 
@@ -38,9 +48,9 @@ def pend(x, t, m, k):
     return dxdt
 
 
-t = np.linspace(0, 10, nt)
+t = np.linspace(0, 10, timesteps)
    
-x = np.zeros((n_data,nt))
+x = np.zeros((n_data,timesteps))
 
 for i in range(n_data):
     x0 = [np.random.uniform(0,np.pi),np.random.uniform(0,1)]
@@ -112,8 +122,8 @@ class Discriminator(nn.Module):
     
     
 # build network
-G = Generator(g_input_dim = z_dim, g_output_dim = nt).to(device)
-D = Discriminator(nt).to(device)
+G = Generator(g_input_dim = z_dim, g_output_dim = timesteps).to(device)
+D = Discriminator(timesteps).to(device)
 
 # set optimizer 
 G_optimizer = optim.Adam(G.parameters(), lr = lr)
@@ -203,8 +213,8 @@ with torch.no_grad():
             c+= 1
     
     
-    fig.suptitle('n_epochs ' +str(n_epochs)+' z_dim '+str(z_dim)+' lr '+str(lr)+' slope '+str(slope)+' drop '+str(drop),fontsize="x-large")
-    plt.show()
-    #plt.savefig('./output/GAN/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr)+' slope '+str(slope)+' drop '+str(drop)+'.png')     
+    fig.suptitle('n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr),fontsize="x-large")
+    #plt.show()
+    plt.savefig('./output/GAN/Pendulum/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr)+'.png')     
                                                                                                                         
 # %%
