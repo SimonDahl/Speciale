@@ -1,4 +1,6 @@
 # prerequisites
+from ast import arg
+from tokenize import Double
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,43 +11,50 @@ from torchvision.utils import save_image
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import argparse
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+from scipy.integrate import odeint
 
-#%% Hyperparamters 
+#%% Hyperparameters
 
-# Batch size 
-bs = 300
-# Dimension of z - noise vector 
+bs = 5
+n_data = 10
+nt = 128*4
+slope = 0.01
+drop = 0.2
+criterion = nn.BCELoss() 
+lr = 0.01
+np.random.seed(2022)
+n_epochs = 10
 z_dim = 100
 
-# loss 
-criterion = nn.BCELoss() 
-# learning rate
-lr = 0.0002 
-# number of epochs 
-n_epoch = 1
+#%% Generate data 
 
-#%% Generate sine wave data
-
-def sin_func(x):
-  return np.sin(x)
-
-n = 30000              # number of waves
-nt = 128*4              # time steps pr wave 
-#f = 3.0                  # frequency in Hz
+def pend(x, t, m, k):
+    x1,x2 = x
+    dxdt = [x2, -m*x2 - k*np.sin(x1)]
+    return dxdt
 
 
-
-t = np.linspace(0,1,nt)  # time stamps in s
-x = np.zeros((n,nt))
-phase = np.random.uniform(-np.pi, np.pi, size=n)
-for i in range(n):
-    f = np.random.uniform(1,5) # frequency in Hz  
-    A = np.random.uniform(1,5) # random amplitude
-    x[i,:] = A*np.sin(2*np.pi*f*t + phase[i] )
+t = np.linspace(0, 10, nt)
    
+x = np.zeros((n_data,nt))
+
+for i in range(n_data):
+    x0 = [np.random.uniform(0,np.pi),np.random.uniform(0,1)]
+    m = np.random.uniform(0.1,2)
+    k = np.random.uniform(3,10)
+    sol = odeint(pend, x0, t, args=(m, k))
+    x[i,:] = sol[:,0]
+print('Data generation complete')
+
+print(x.shape)
+    
+#plt.plot(t, x[0, :], 'b', label='theta(t)')
+#plt.show()
+
    
 #%% Ready data
 
@@ -60,21 +69,25 @@ train_loader = torch.utils.data.DataLoader(dataset=train_set, batch_size=bs, shu
 #%% Define Network
 
 
+
+
 class Generator(nn.Module):
     def __init__(self, g_input_dim, g_output_dim):
         super(Generator, self).__init__()       
         self.fc1 = nn.Linear(g_input_dim, g_input_dim*2)
         self.fc2 = nn.Linear(self.fc1.out_features, self.fc1.out_features*2)
         self.fc3 = nn.Linear(self.fc2.out_features, self.fc2.out_features*2)
-        self.fc4 = nn.Linear(self.fc3.out_features, g_output_dim)
+        self.fc4 = nn.Linear(self.fc3.out_features, self.fc3.out_features*2)
+        self.fc5 = nn.Linear(self.fc4.out_features, g_output_dim)
     
     # forward method
     def forward(self, x): 
-        x = F.leaky_relu(self.fc1(x), 0.1) # leaky relu, with slope angle 
-        x = F.leaky_relu(self.fc2(x), 0.1) 
-        x = F.leaky_relu(self.fc3(x), 0.1)
+        x = F.leaky_relu(self.fc1(x), slope) # leaky relu, with slope angle 
+        x = F.leaky_relu(self.fc2(x), slope) 
+        x = F.leaky_relu(self.fc3(x), slope)
+        x = F.leaky_relu(self.fc4(x), slope)
         #return torch.tanh(self.fc4(x))
-        return self.fc4(x) 
+        return self.fc5(x) 
     
 class Discriminator(nn.Module):
     def __init__(self, d_input_dim):
@@ -82,17 +95,20 @@ class Discriminator(nn.Module):
         self.fc1 = nn.Linear(d_input_dim, d_input_dim *4)
         self.fc2 = nn.Linear(self.fc1.out_features, self.fc1.out_features//2)
         self.fc3 = nn.Linear(self.fc2.out_features, self.fc2.out_features//2)
-        self.fc4 = nn.Linear(self.fc3.out_features, 1)  # output dim = 1 for binary classification 
+        self.fc4 = nn.Linear(self.fc3.out_features, self.fc3.out_features//2)
+        self.fc5 = nn.Linear(self.fc4.out_features, 1)  # output dim = 1 for binary classification 
     
     # forward method
     def forward(self, x):
-        x = F.leaky_relu(self.fc1(x), 0.2)
-        x = F.dropout(x, 0.3)
-        x = F.leaky_relu(self.fc2(x), 0.2)
-        x = F.dropout(x, 0.3)
-        x = F.leaky_relu(self.fc3(x), 0.2)
-        x = F.dropout(x, 0.3)
-        return torch.sigmoid(self.fc4(x))  # sigmoid for probaility 
+        x = F.leaky_relu(self.fc1(x), slope)
+        x = F.dropout(x, drop)
+        x = F.leaky_relu(self.fc2(x), slope)
+        x = F.dropout(x, drop)
+        x = F.leaky_relu(self.fc3(x), slope)
+        x = F.dropout(x, drop)
+        x = F.leaky_relu(self.fc4(x), slope)
+        x = F.dropout(x, drop)
+        return torch.sigmoid(self.fc5(x))  # sigmoid for probaility 
     
     
 # build network
@@ -155,7 +171,7 @@ def D_train(x):
 
 
 #%% 
-for epoch in range(1, n_epoch+1):           
+for epoch in range(1, n_epochs+1):           
     D_losses, G_losses = [], []
     for batch_idx,x in enumerate(train_loader):
      
@@ -163,7 +179,7 @@ for epoch in range(1, n_epoch+1):
         G_losses.append(G_train(x))
 
     print('[%d/%d]: loss_d: %.3f, loss_g: %.3f' % (
-            (epoch), n_epoch, torch.mean(torch.FloatTensor(D_losses)), torch.mean(torch.FloatTensor(G_losses))))
+            (epoch), n_epochs, torch.mean(torch.FloatTensor(D_losses)), torch.mean(torch.FloatTensor(G_losses))))
                                                                                                                     
                                                                                                                     
 #%% Generate sample 
@@ -186,9 +202,9 @@ with torch.no_grad():
             ax[i,j].set_title('Sample ' + str(c))
             c+= 1
     
-    #plt.show()
-    fig.suptitle('Generated Samples number of epochs '+ str(n_epoch),fontsize="x-large")
-    plt.savefig('generated_sample.png')
-         
+    
+    fig.suptitle('n_epochs ' +str(n_epochs)+' z_dim '+str(z_dim)+' lr '+str(lr)+' slope '+str(slope)+' drop '+str(drop),fontsize="x-large")
+    plt.show()
+    #plt.savefig('./output/GAN/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr)+' slope '+str(slope)+' drop '+str(drop)+'.png')     
                                                                                                                         
 # %%

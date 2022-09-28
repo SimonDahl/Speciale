@@ -21,6 +21,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--n_epochs',help='Number of epochs',type=int)
 parser.add_argument('--z_dim',help='Number of z dims',type=int)
 parser.add_argument('--lr',help='Learning rate',type=float)
+parser.add_argument('--slope',help='negative slope of leaky ReLU',type=float)
+parser.add_argument('--drop',help='amount of dropout',type=float)
+
+
 
 args = parser.parse_args()
 
@@ -36,6 +40,9 @@ criterion = nn.BCELoss()
 # learning rate # 0.0002
 lr = args.lr 
 #lr = 0.0002
+
+slope = args.slope
+drop = args.drop
 
 np.random.seed(2022) # random seed 
 # number of epochs 
@@ -62,6 +69,9 @@ for i in range(n):
     A = np.random.uniform(1,5) # random amplitude
     x[i,:] = A*np.sin(2*np.pi*f*t + phase[i] )
    
+ 
+
+
    
 #%% Ready data
 
@@ -87,10 +97,10 @@ class Generator(nn.Module):
     
     # forward method
     def forward(self, x): 
-        x = F.leaky_relu(self.fc1(x), 0.1) # leaky relu, with slope angle 
-        x = F.leaky_relu(self.fc2(x), 0.1) 
-        x = F.leaky_relu(self.fc3(x), 0.1)
-        x = F.leaky_relu(self.fc4(x), 0.1)
+        x = F.leaky_relu(self.fc1(x), slope) # leaky relu, with slope angle 
+        x = F.leaky_relu(self.fc2(x), slope) 
+        x = F.leaky_relu(self.fc3(x), slope)
+        x = F.leaky_relu(self.fc4(x), slope)
         #return torch.tanh(self.fc4(x))
         return self.fc5(x) 
     
@@ -105,14 +115,14 @@ class Discriminator(nn.Module):
     
     # forward method
     def forward(self, x):
-        x = F.leaky_relu(self.fc1(x), 0.2)
-        x = F.dropout(x, 0.3)
-        x = F.leaky_relu(self.fc2(x), 0.2)
-        x = F.dropout(x, 0.3)
-        x = F.leaky_relu(self.fc3(x), 0.2)
-        x = F.dropout(x, 0.3)
-        x = F.leaky_relu(self.fc4(x), 0.2)
-        x = F.dropout(x, 0.3)
+        x = F.leaky_relu(self.fc1(x), slope)
+        x = F.dropout(x, drop)
+        x = F.leaky_relu(self.fc2(x), slope)
+        x = F.dropout(x, drop)
+        x = F.leaky_relu(self.fc3(x), slope)
+        x = F.dropout(x, drop)
+        x = F.leaky_relu(self.fc4(x), slope)
+        x = F.dropout(x, drop)
         return torch.sigmoid(self.fc5(x))  # sigmoid for probaility 
     
     
@@ -208,8 +218,8 @@ with torch.no_grad():
             c+= 1
     
     
-    fig.suptitle('n_epochs ' +str(n_epochs)+' z_dim '+str(z_dim)+' lr '+str(lr),fontsize="x-large")
+    fig.suptitle('n_epochs ' +str(n_epochs)+' z_dim '+str(z_dim)+' lr '+str(lr)+' slope '+str(slope)+' drop '+str(drop),fontsize="x-large")
     #plt.show()
-    plt.savefig('./output/GAN/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr)+'.png')     
+    plt.savefig('./output/GAN/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr)+' slope '+str(slope)+' drop '+str(drop)+'.png')     
                                                                                                                         
 # %%

@@ -16,6 +16,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--n_epochs',help='Number of epochs',type=int)
 parser.add_argument('--z_dim_size',help='Number of z dims',type=int)
 parser.add_argument('--lr',help='Learning rate',type=float)
+parser.add_argument('--n_data',help='amount of timesteps',type=int)
 
 args = parser.parse_args()
 
@@ -33,12 +34,14 @@ z_dim_size = args.z_dim_size
 lr = args.lr   #3e-4
 #lr = 3e-4
 
+n_data = args.n_data
+
 #%%
 def sin_func(x):
   return np.sin(x)
 
 n = 50000              # number of waves
-nt = 128*4              # time steps pr wave 
+nt = 128*n_data             # time steps pr wave 
 #f = 3.0                  # frequency in Hz
 
 
@@ -214,7 +217,7 @@ y = decoded.detach().numpy()
 
 plt.plot(t,y.flatten(),label='Decoded')
 plt.legend(loc='upper right')
-#plt.savefig('./output/VAE/'+'Encode_Decode n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+'.png')
+plt.savefig('./output/VAE/'+'Encode_Decode n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+' n_data '+str(n_data)+'.png')
 
 
 
@@ -239,7 +242,7 @@ with torch.no_grad():
             c+= 1
 
 
-    fig.suptitle('n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr),fontsize="x-large")
-    plt.savefig('./output/VAE/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+'.png')
+    fig.suptitle('n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+' n_data '+str(n_data),fontsize="x-large")
+    plt.savefig('./output/VAE/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+' n_data '+str(n_data)+'.png')
     #plt.show()
 

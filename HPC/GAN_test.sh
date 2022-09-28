@@ -34,17 +34,22 @@ module load matplotlib/3.5.1-numpy-1.22.2-python-3.10.2
 ## Konstant argument til programmet
 
 ## Hvis man skal lave et loop hvor programmet modtager forskellige argumenter.
-for n_epochs in 500 1000
+for n_epochs in 1000
 do
-	for z_dim in 10 50 100 200
+	for z_dim in 10 20 100 
 	do
-		for lr in 1e-1 1e-2 1e-3 1e-4
+		for lr in 0.0001 0.0005 0.00005
 		do 
-
-		python3 GAN_test.py --n_epochs=$n_epochs --z_dim=$z_dim --lr=$lr
+			for slope in 0.001 0.1 0.5
+			do
+				for drop in 0.0 0.1 0.2
+				do
+	
+				python3 GAN_test.py --n_epochs=$n_epochs --z_dim=$z_dim --lr=$lr --slope=$slope --drop=$drop
+				done
+			done
 		done
 	done
 done
-
 
 ## Har man oprettet jobbet som en liste af jobs my_job_name[1-100] så kan man bruge dette indeks fra 1 til 100 som argument til sit program med argumentet $LSB_JOBINDEX
