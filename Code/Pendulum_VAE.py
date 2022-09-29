@@ -231,7 +231,7 @@ y = decoded.detach().numpy()
 plt.plot(t,y.flatten(),label='Decoded')
 plt.legend(loc='upper right')
 plt.savefig('./output/VAE/Pendulum/'+'Encode_Decode n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+'.png')
-
+#plt.show()
 
 
 with torch.no_grad():
@@ -260,5 +260,6 @@ with torch.no_grad():
 
     fig.suptitle('n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr),fontsize="x-large")
     plt.savefig('./output/VAE/Pendulum/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+'.png')
+     
     #plt.show()
 
