@@ -129,7 +129,7 @@ class VAE(nn.Module):
         return (self.fc8(h)) 
     
     def forward(self, x):
-        mu, log_var = self.encoder(x.view(-1, nt))
+        mu, log_var = self.encoder(x.view(-1, timesteps))
         z = self.sampling(mu, log_var)
         return self.decoder(z), mu, log_var
 
