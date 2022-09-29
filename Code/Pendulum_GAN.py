@@ -60,7 +60,7 @@ for i in range(n_data):
     x[i,:] = sol[:,0]
 print('Data generation complete')
 
-print(x.shape)
+#print(x.shape)
     
 #plt.plot(t, x[0, :], 'b', label='theta(t)')
 #plt.show()
