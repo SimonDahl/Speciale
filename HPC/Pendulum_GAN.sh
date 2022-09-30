@@ -34,11 +34,11 @@ module load matplotlib/3.5.1-numpy-1.22.2-python-3.10.2
 ## Konstant argument til programmet
 
 ## Hvis man skal lave et loop hvor programmet modtager forskellige argumenter.
-for n_epochs in 1000
+for n_epochs in 1000 2000
 do
 	for z_dim in 10 100 
 	do
-		for lr in 0.0001 0.0005 0.00005
+		for lr in 0.0001 0.0005 0.00005 0.00001 
 		do 
 
 		python3 Pendulum_GAN.py --n_epochs=$n_epochs --z_dim=$z_dim --lr=$lr

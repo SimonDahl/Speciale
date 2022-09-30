@@ -37,7 +37,7 @@ z_dim_size = args.z_dim_size
 lr = args.lr   #3e-4
 #lr = 3e-4
 timesteps = 500
-n_data = 20000
+n_data = 2000
 
 
 

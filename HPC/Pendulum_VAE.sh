@@ -35,11 +35,11 @@ module load matplotlib/3.5.1-numpy-1.22.2-python-3.10.2
 
 ## Hvis man skal lave et loop hvor programmet modtager forskellige argumenter.
 
-for n_epochs in 100 200 500 
+for n_epochs in 100 200 500 800 
 do
-	for z_dim_size in 3 4 10 
+	for z_dim_size in 3 4 
 	do
-		for lr in 1e-4 5e-4 5e-5 1e-6  
+		for lr in 5e-3 1e-4 5e-4 5e-5 1e-6  
 		do
 		
  

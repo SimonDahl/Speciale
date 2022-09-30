@@ -30,7 +30,7 @@ args = parser.parse_args()
 #%% Hyperparameters
 
 bs = 500
-n_data = 20000
+n_data = 2000
 timesteps = 500
 slope = 0.01
 drop = 0.2
