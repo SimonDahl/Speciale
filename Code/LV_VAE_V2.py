@@ -26,18 +26,18 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #%%
 # batch size 
-bs = 100
+bs = 500
 n_epochs = args.n_epochs
-#n_epochs = 100
+#n_epochs = 1
 # latent space size 
 z_dim_size = args.z_dim_size
 #z_dim_size = 3
-#np.random.seed(2022)
+np.random.seed(2022)
 lr = args.lr   #3e-4
 #lr = 3e-4
 
-n_data = 1500
-t_gen = 1000
+n_data = 10
+t_gen = 5000
 timesteps = t_gen*2
 
 #%% Data generation 
@@ -48,7 +48,7 @@ def lv(X, t, alpha, beta, delta, gamma):
     doty = y * (-delta + gamma * x)
     return np.array([dotx, doty])
 
-t = np.linspace(0.,10,t_gen)
+t = np.linspace(0.,20,t_gen)
 x = np.zeros((n_data,timesteps))
 
 for i in range(n_data):
@@ -99,22 +99,22 @@ class VAE(nn.Module):
         self.fc1 = nn.Linear(x_dim, h_dim1)
         self.fc2 = nn.Linear(h_dim1, h_dim2)
         self.fc3 = nn.Linear(h_dim2, h_dim3)
-        self.fc4 = nn.Linear(h_dim3, h_dim4)
-        self.fc4_sigma = nn.Linear(h_dim4, z_dim)
-        self.fc4_mu = nn.Linear(h_dim4, z_dim)
+        #self.fc4 = nn.Linear(h_dim3, h_dim4)
+        self.fc3_sigma = nn.Linear(h_dim3, z_dim)
+        self.fc3_mu = nn.Linear(h_dim3, z_dim)
         # decoder part
-        self.fc_z = nn.Linear(z_dim, h_dim4)
-        self.fc5 = nn.Linear(h_dim4, h_dim3)
-        self.fc6 = nn.Linear(h_dim3, h_dim2)
-        self.fc7 = nn.Linear(h_dim2, h_dim1)
-        self.fc8 = nn.Linear(h_dim1, x_dim)
+        self.fc_z = nn.Linear(z_dim, h_dim3)
+        self.fc4 = nn.Linear(h_dim3, h_dim2)
+        self.fc5 = nn.Linear(h_dim2, h_dim1)
+        #self.fc7 = nn.Linear(h_dim2, h_dim1)
+        self.fc6 = nn.Linear(h_dim1, x_dim)
         
     def encoder(self, x):
         h = F.leaky_relu(self.fc1(x))
         h = F.leaky_relu(self.fc2(h))
         h = F.leaky_relu(self.fc3(h))
-        h = F.leaky_relu(self.fc4(h))
-        return self.fc4_sigma(h), self.fc4_mu(h) # mu, log_var
+        #h = F.leaky_relu(self.fc4(h))
+        return self.fc3_sigma(h), self.fc3_mu(h) # mu, log_var
     
     def sampling(self, mu, log_var):
         std = torch.exp(0.5*log_var)
@@ -123,10 +123,10 @@ class VAE(nn.Module):
         
     def decoder(self, z):
         h = F.leaky_relu(self.fc_z(z))
+        h = F.leaky_relu(self.fc4(h))
         h = F.leaky_relu(self.fc5(h))
-        h = F.leaky_relu(self.fc6(h))
-        h = F.leaky_relu(self.fc7(h))
-        return (self.fc8(h)) 
+        #h = F.leaky_relu(self.fc6(h))
+        return (self.fc6(h))
     
     def forward(self, x):
         mu, log_var = self.encoder(x.view(-1, timesteps))
@@ -231,8 +231,8 @@ y = decoded.detach().numpy()
 plt.plot(t,y[0:t_gen].flatten(),label='Decoded Prey')
 plt.plot(t,y[t_gen:].flatten(),label='Decoded Predator')
 plt.legend(loc='upper right')
-#plt.savefig('./output/VAE/LV/'+'Encode_Decode n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+'.png')
-plt.show()
+plt.savefig('./output/VAE/LV/'+'Encode_Decode n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+'.png')
+#plt.show()
 
 
 with torch.no_grad():
@@ -261,6 +261,6 @@ with torch.no_grad():
 
 
     fig.suptitle('n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr),fontsize="x-large")
-   # plt.savefig('./output/VAE/LV/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+'.png')
-    plt.show()
+    plt.savefig('./output/VAE/LV/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+'.png')
+    #plt.show()
 

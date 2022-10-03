@@ -6,9 +6,9 @@
 #BSUB -gpu "num=1:mode=exclusive_process"
 
 ##Navn på job. Hvis man vil lave mange jobs kan man skrive my_job_name[1-100] så får man 100 jobs.
-#BSUB -J LV_VAE_fisk
+#BSUB -J LV_VAE_V2
 ##Output log fil. Folderen skal eksistere før jobbet submittes. Job nummer indsættes automatisk ved %J i filnavnet.
-#BSUB -o output/LV_VAE_fisk-%J.out
+#BSUB -o output/LV_VAE_V2-%J.out
 ##Antal cpu kerner
 #BSUB -n 1
 ##Om kernerne må være på forskellige computere
@@ -35,15 +35,15 @@ module load matplotlib/3.5.1-numpy-1.22.2-python-3.10.2
 
 ## Hvis man skal lave et loop hvor programmet modtager forskellige argumenter.
 
-for n_epochs in 100 200 600
+for n_epochs in 50 100 200 600
 do
-	for z_dim_size in 3 4 
+	for z_dim_size in 3 4 5 
 	do
-		for lr in 5e-3 1e-4 5e-4 5e-5  
+		for lr in 5e-3 1e-4
 		do
 		
  
-		python3 LV_VAE.py --n_epochs=$n_epochs --z_dim_size=$z_dim_size --lr=$lr
+		python3 LV_VAE_V2.py --n_epochs=$n_epochs --z_dim_size=$z_dim_size --lr=$lr
 		done
 		
 	done 
