@@ -282,3 +282,58 @@ ax.set_title('$u(t,x)$', fontsize = 20) # font size doubled
 ax.tick_params(labelsize=15)
 
 plt.show()
+
+
+####### Row 1: u(t,x) slices ##################    
+gs1 = gridspec.GridSpec(1, 3)
+gs1.update(top=1-1/3, bottom=0, left=0.1, right=0.9, wspace=0.5)
+
+fig = plt.figure(figsize=(20, 10))
+ax = fig.add_subplot(111)
+
+ax = plt.subplot(gs1[0, 0])
+ax.plot(x,Exact[25,:], 'b-', linewidth = 2, label = 'Exact')       
+ax.plot(x,U_pred[25,:], 'r--', linewidth = 2, label = 'Prediction')
+lower = U_pred[25,:] - 2.0*np.sqrt(U_dev[25,:])
+upper = U_pred[25,:] + 2.0*np.sqrt(U_dev[25,:])
+plt.fill_between(x.flatten(), lower.flatten(), upper.flatten(), 
+                 facecolor='orange', alpha=0.5, label="Two std band")
+ax.set_xlabel('$x$')
+ax.set_ylabel('$u(t,x)$')    
+ax.set_title('$t = 0.25$', fontsize = 10)
+ax.axis('square')
+ax.set_xlim([-1.1,1.1])
+# ax.set_ylim([-1.1,1.1])
+
+ax = plt.subplot(gs1[0, 1])
+ax.plot(x,Exact[50,:], 'b-', linewidth = 2, label = 'Exact')       
+ax.plot(x,U_pred[50,:], 'r--', linewidth = 2, label = 'Prediction')
+lower = U_pred[50,:] - 2.0*np.sqrt(U_dev[50,:])
+upper = U_pred[50,:] + 2.0*np.sqrt(U_dev[50,:])
+plt.fill_between(x.flatten(), lower.flatten(), upper.flatten(), 
+                 facecolor='orange', alpha=0.5, label="Two std band")
+ax.set_xlabel('$x$')
+ax.set_ylabel('$u(t,x)$')
+ax.axis('square')
+ax.set_xlim([-1.1,1.1])
+# ax.set_ylim([-1.1,1.1])
+ax.set_title('$t = 0.50$', fontsize = 10)
+ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.35), ncol=5, frameon=False)
+
+ax = plt.subplot(gs1[0, 2])
+ax.plot(x,Exact[75,:], 'b-', linewidth = 2, label = 'Exact')       
+ax.plot(x,U_pred[75,:], 'r--', linewidth = 2, label = 'Prediction')
+lower = U_pred[75,:] - 2.0*np.sqrt(U_dev[75,:])
+upper = U_pred[75,:] + 2.0*np.sqrt(U_dev[75,:])
+plt.fill_between(x.flatten(), lower.flatten(), upper.flatten(), 
+                 facecolor='orange', alpha=0.5, label="Two std band")
+ax.set_xlabel('$x$')
+ax.set_ylabel('$u(t,x)$')
+ax.axis('square')
+ax.set_xlim([-1.1,1.1])
+# ax.set_ylim([-1.1,1.1])    
+ax.set_title('$t = 0.75$', fontsize = 10)
+
+
+fig, ax = newfig(1.0)
+ax.axis('off')
