@@ -76,11 +76,11 @@ def init_weights(m):
 LEARNING_RATE = 1e-3
 WEIGHT_DECAY = 0
 BETA = 1e6
-MU = -1;
+MU = -1
 BETA_LIM = BETA
 TRAIN_LIM = 4*np.pi
 COL_RES = 1000
-EPOCHS = 1000
+EPOCHS = 30000
 n = 30
 
 

@@ -27,27 +27,22 @@ from pyDOE import lhs
 import warnings
 #sys.path.insert(0, '../../../Scripts/')
 from models_pde import Generator, Discriminator, Q_Net
-from pid import *
-# from ../Scripts/helper import *
+from pig import *
+# from ../Scripts/helper import 
 
-warnings.filterwarnings('ignore')
-
-np.random.seed(1234)
 
 # CUDA support 
 if torch.cuda.is_available():
-    device = torch.device('cuda:1')
+    device = torch.device('cuda:0')
 else:
     device = torch.device('cpu')
     
-#%% Hyper paramters 
-
-num_epochs = 1
-lambda_val = 0.05
+    
+num_epochs = 3
+lambda_phy = 1
 lambda_q = 0.5
 
 noise = 0.1
-
 
 #architecture for the models
 d_hid_dim = 50 
@@ -59,7 +54,8 @@ g_num_layer = 4
 q_hid_dim = 50
 q_num_layer = 4
 
-#%% load data 
+
+#%% 
 
 N_u = 100
 N_i = 50
@@ -113,29 +109,16 @@ X_u_train = np.vstack([X_u_train, X_i_train])
 u_train = np.vstack([u_train, u_i_train])
 
 
-print(X_u_train.shape)
-print(u_train.shape)
-print(X_f_train.shape)
-print(X_star.shape)
-print(X_star.shape)
 
-
-
-#%% Models 
-
-D = Discriminator(in_dim = 4, out_dim = 1, hid_dim = d_hid_dim, num_layers = d_num_layer).to(device)
+D = Discriminator(in_dim = 3, out_dim = 1, hid_dim = d_hid_dim, num_layers = d_num_layer).to(device)
 G = Generator(in_dim = 3, out_dim = 1, hid_dim = g_hid_dim, num_layers = g_num_layer).to(device)
 Q = Q_Net(in_dim = 3, out_dim = 1, hid_dim = q_hid_dim, num_layers = q_num_layer).to(device)
 
-#%% Burgers 
 
 
+burgers = Burgers_PIG(X_u_train, u_train, X_f_train, X_star, u_star, G, D, Q, device, num_epochs, lambda_phy, noise)
+burgers.train()
 
-""" 
-#burgers = Burgers_PID(X_u_train, u_train, X_f_train, X_star, u_star, G, D, Q, device, num_epochs, lambda_val, noise)
-
-#%% 
-#burgers.train()
 
 Xmean = burgers.Xmean
 Xstd = burgers.Xstd
@@ -156,6 +139,7 @@ f_pred = f_pred_arr.mean(axis=0)
 u_dev = u_pred_arr.var(axis=0)
 f_dev = f_pred_arr.var(axis=0)
 
+
 error_u = np.linalg.norm(u_star-u_pred,2)/np.linalg.norm(u_star,2)
 print('Error u: %e' % (error_u))                     
 print('Residual: %e' % (f_pred**2).mean())
@@ -164,7 +148,7 @@ U_dev = griddata(X_star, u_dev.flatten(), (X, T), method='cubic')
 Error = np.abs(Exact - U_pred)
 
 
-
+""" The aesthetic setting has changed. """
 
 ####### Row 0: u(t,x) ##################    
 X_u_train_ = X_u_train 
@@ -292,58 +276,3 @@ ax.set_title('$u(t,x)$', fontsize = 20) # font size doubled
 ax.tick_params(labelsize=15)
 
 plt.show()
-
-
-####### Row 1: u(t,x) slices ##################    
-gs1 = gridspec.GridSpec(1, 3)
-gs1.update(top=1-1/3, bottom=0, left=0.1, right=0.9, wspace=0.5)
-
-fig = plt.figure(figsize=(20, 10))
-ax = fig.add_subplot(111)
-
-ax = plt.subplot(gs1[0, 0])
-ax.plot(x,Exact[25,:], 'b-', linewidth = 2, label = 'Exact')       
-ax.plot(x,U_pred[25,:], 'r--', linewidth = 2, label = 'Prediction')
-lower = U_pred[25,:] - 2.0*np.sqrt(U_dev[25,:])
-upper = U_pred[25,:] + 2.0*np.sqrt(U_dev[25,:])
-plt.fill_between(x.flatten(), lower.flatten(), upper.flatten(), 
-                 facecolor='orange', alpha=0.5, label="Two std band")
-ax.set_xlabel('$x$')
-ax.set_ylabel('$u(t,x)$')    
-ax.set_title('$t = 0.25$', fontsize = 10)
-ax.axis('square')
-ax.set_xlim([-1.1,1.1])
-# ax.set_ylim([-1.1,1.1])
-
-ax = plt.subplot(gs1[0, 1])
-ax.plot(x,Exact[50,:], 'b-', linewidth = 2, label = 'Exact')       
-ax.plot(x,U_pred[50,:], 'r--', linewidth = 2, label = 'Prediction')
-lower = U_pred[50,:] - 2.0*np.sqrt(U_dev[50,:])
-upper = U_pred[50,:] + 2.0*np.sqrt(U_dev[50,:])
-plt.fill_between(x.flatten(), lower.flatten(), upper.flatten(), 
-                 facecolor='orange', alpha=0.5, label="Two std band")
-ax.set_xlabel('$x$')
-ax.set_ylabel('$u(t,x)$')
-ax.axis('square')
-ax.set_xlim([-1.1,1.1])
-# ax.set_ylim([-1.1,1.1])
-ax.set_title('$t = 0.50$', fontsize = 10)
-ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.35), ncol=5, frameon=False)
-
-ax = plt.subplot(gs1[0, 2])
-ax.plot(x,Exact[75,:], 'b-', linewidth = 2, label = 'Exact')       
-ax.plot(x,U_pred[75,:], 'r--', linewidth = 2, label = 'Prediction')
-lower = U_pred[75,:] - 2.0*np.sqrt(U_dev[75,:])
-upper = U_pred[75,:] + 2.0*np.sqrt(U_dev[75,:])
-plt.fill_between(x.flatten(), lower.flatten(), upper.flatten(), 
-                 facecolor='orange', alpha=0.5, label="Two std band")
-ax.set_xlabel('$x$')
-ax.set_ylabel('$u(t,x)$')
-ax.axis('square')
-ax.set_xlim([-1.1,1.1])
-# ax.set_ylim([-1.1,1.1])    
-ax.set_title('$t = 0.75$', fontsize = 10)
-
-
-fig, ax = newfig(1.0)
-ax.axis('off') """

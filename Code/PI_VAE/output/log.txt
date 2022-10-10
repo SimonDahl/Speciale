@@ -1,0 +1,1 @@
+# epoch recerr_sq kldiv unmix dataug lact_dec valid_recerr_sq valid_kldiv duration
