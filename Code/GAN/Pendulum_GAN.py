@@ -29,16 +29,19 @@ args = parser.parse_args()
 
 #%% Hyperparameters
 
-bs = 500
-n_data = 2000
+bs = 5
+n_data = 5
 timesteps = 500
 slope = 0.01
 drop = 0.2
 criterion = nn.BCELoss() 
-lr = args.lr
+#lr = args.lr
+lr = 0.001
 np.random.seed(2022)
-n_epochs = args.n_epochs
-z_dim = args.z_dim
+#n_epochs = args.n_epochs
+#z_dim = args.z_dim
+n_epochs = 1000
+z_dim = 5
 
 #%% Generate data 
 
@@ -53,9 +56,9 @@ t = np.linspace(0, 10, timesteps)
 x = np.zeros((n_data,timesteps))
 
 for i in range(n_data):
-    x0 = [np.random.uniform(0,np.pi),np.random.uniform(0,1)]
-    m = np.random.uniform(0.1,2)
-    k = np.random.uniform(3,10)
+    x0 = [np.random.uniform(1,3),0]
+    m = 1
+    k = 2
     sol = odeint(pend, x0, t, args=(m, k))
     x[i,:] = sol[:,0]
 print('Data generation complete')
@@ -214,7 +217,7 @@ with torch.no_grad():
     
     
     fig.suptitle('n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr),fontsize="x-large")
-    #plt.show()
-    plt.savefig('./output/GAN/Pendulum/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr)+'.png')     
+    plt.show()
+    #plt.savefig('./output/GAN/Pendulum/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr)+'.png')     
                                                                                                                         
 # %%

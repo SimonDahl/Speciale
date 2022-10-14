@@ -80,7 +80,7 @@ MU = -1
 BETA_LIM = BETA
 TRAIN_LIM = 4*np.pi
 COL_RES = 1000
-EPOCHS = 30000
+EPOCHS = 1
 n = 30
 
 
@@ -113,6 +113,8 @@ B_WEIGHT = 1 #Boundary Weight
 net = Net()
 net = net.to(device)
 net.apply(init_weights)
+
+print(net)
 
 # Define loss and optimizer
 criterion = torch.nn.MSELoss() # Mean squared error
@@ -151,6 +153,12 @@ for epoch in range(EPOCHS):
     net_bc_out = net(pt_t_bc) # output of u(x,t)
 
     net_data_out = net(t_data)
+    print(net_bc_out.shape)
+    print(net_data_out.shape)
+    print(t_data.shape)
+    print(pt_t_bc.shape)
+    
+    
     mse_u = criterion(input = net_bc_out, target = pt_x_bc)+criterion(input = net_data_out, target = y_data) # Boundary loss
     
     #mse_s = criterion(input = net_data_out, target = y_data) # Boundary loss
@@ -182,11 +190,18 @@ for epoch in range(EPOCHS):
 
 print('Net Parameters:  k:',net.k.detach().numpy() )
 
+t1 = net(pt_t_bc) # output of u(x,t)
+
+t2 = net(t_data)
+
+print(t1.shape)
+print(t2.shape)
+
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-n = 1000
+""" n = 1000
 T_test = torch.linspace(0,TRAIN_LIM,n,requires_grad=True).to(device)
 T_test = T_test.reshape(n,1)
 
@@ -210,4 +225,4 @@ plt.show()
 plt.figure()
 plt.title('Residual plots of ODE1')
 plt.scatter(T_plot,ode1_residual)
-plt.show()
+plt.show() """
