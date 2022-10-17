@@ -188,7 +188,7 @@ def G_train(x,y_train):
         
         phy_loss1,_,_ = n_phy_prob(x)
 
-        z = Variable(torch.randn(z_dim,1).to(device))
+        #z = Variable(torch.randn(z_dim,1).to(device))
         #y_GAN = Variable(torch.ones(1).to(device))
 
         res,y_pred,G_noise = n_phy_prob(x)
@@ -206,7 +206,7 @@ def G_train(x,y_train):
         #print(fake_logits_u.shape)
        
         
-        phy_loss = torch.mean(phy_loss1**2)
+        #phy_loss = torch.mean(phy_loss1**2)
 
         G_loss = fake_logits_u + mse_loss + mse_loss_z
 
@@ -284,19 +284,22 @@ plt.plot(x_plot,y_plot)
       #plt.title('batch_idx'+str(batch_idx)+'epoch'+str(epoch))
 plt.show()
  """
-""" 
+
 with torch.no_grad():
     
-    z = Variable(torch.randn(z_dim).to(device))
-    g_gen = torch.concat((x_data[:,-1],z))
-    generated = G(g_gen)
-    y = generated.cpu().detach().numpy()
-    plt.plot(x_data[:,-1],y)
+    
+    for i in range(5):
+        
+        z = Variable(torch.randn(z_dim).to(device))
+        g_gen = torch.concat((x_data[:,-1],z))
+        generated = G(g_gen)
+        y = generated.cpu().detach().numpy()
+        plt.plot(x_data[:,-1],y)
     plt.show()
- """
 
 
 
+""""
  with torch.no_grad():
     
     fig, ax = plt.subplots(2,4)
@@ -321,5 +324,5 @@ with torch.no_grad():
     plt.show()
     
     #plt.savefig('./output/GAN/Pendulum/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr)+'.png')     
-                                                                                                                        
+"""                                                                                                                        
 # %%

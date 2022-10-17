@@ -1,6 +1,8 @@
 # er lavet helt som i artiklen, har både boundary points og tager kun et punkt af gangen som input. ser ikke ud til at lære noget som helst 
 
 
+# hvis compute res er test equaion ligner det rent faktisk den, på trods af data er pendul 
+
 # prerequisites
 from ast import arg
 from tkinter import X
@@ -24,8 +26,8 @@ from scipy.integrate import odeint
 
 n_data = 1
 bs = 1
-time_limit = 3
-n_col = 150
+time_limit = 5
+n_col = 200
 m = 1
 k = 2
 
@@ -39,28 +41,35 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 100
+n_epochs = 10
 
 gen_epoch = 5
-lambda_phy = 1
+lambda_phy = 2
 lambda_q = 1
 #y_data = -k*np.cos()+k
 t = np.linspace(0, time_limit, n_col)
 
 lam = 1
-def test_equation(x, t,lam):
-    dxdt = lam*x
+
+
+def pend(x, t, m, k):
+    x1,x2 = x
+    dxdt = [x2, -m*x2 - k*np.sin(x1)]
     return dxdt
+
+
 
 sol_data = np.zeros((n_data,n_col))
 y_b = np.zeros((n_data,1))
 
-
 for i in range(n_data):
-    x0 = np.random.uniform(1,3)
-    sol = odeint(test_equation, x0, t, args=(lam,))
-    sol_data[i,:] = sol[:,-1]
-    y_b[i] = x0
+    #m = np.random.uniform(1,5)
+    x0 = [np.random.uniform(1,3),0]
+    sol = odeint(pend, x0, t, args=(m, k))
+    sol_data[i,:] = sol[:,0]
+    y_b[i] = x0[0]
+print('Data generation complete')
+
 
 
 x_col = np.linspace(0.1, time_limit, n_col)
@@ -157,7 +166,8 @@ def compute_residuals(x_collocation):
         x = x_collocation[i]
         u = G(torch.concat((x,z)))
         u_t = torch.autograd.grad(u.sum(), x, create_graph=True)[0]
-        r_ode[i]= lam*x - u_t
+        u_tt = torch.autograd.grad(u_t.sum(), x, create_graph=True)[0]
+        r_ode[i]= m*u_tt+k*x
     
     res = np.mean(r_ode**2)
     return res

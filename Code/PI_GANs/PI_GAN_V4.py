@@ -38,7 +38,7 @@ x_dim = x_data.shape[0]
 y_dim = x_dim 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 100
+n_epochs = 50
 gen_epoch = 5
 #y_data = -k*np.cos()+k
 t = np.linspace(0, time_limit, n_col)
@@ -62,7 +62,10 @@ y_data = Variable(torch.from_numpy(sol).float(), requires_grad=True).to(device)
 y_data = y_data.reshape(n_col,1)
 
 
-
+x_plot = x_data.cpu().detach().numpy()
+y_plot = y_data.cpu().detach().numpy()
+plt.plot(x_plot,y_plot)
+#plt.show()
 
 class Generator(nn.Module):
     def __init__(self, g_input_dim, g_output_dim):
@@ -160,8 +163,8 @@ def G_train(x):
         
         G.zero_grad()
 
-        z = Variable(torch.randn(z_dim,1).to(device))
-        y_GAN = Variable(torch.ones(1).to(device))
+        #z = Variable(torch.randn(z_dim,1).to(device))
+        #y_GAN = Variable(torch.ones(1).to(device))
 
         _,y_pred,G_noise = n_phy_prob(x)
 
@@ -206,8 +209,8 @@ def D_train(x):
     D_optimizer.zero_grad()
     d_input = torch.concat((x,y_data))
     real_logits = D(d_input[:,-1])
-    _,u,_ = n_phy_prob(x)
-    fake_logits_u = D(torch.concat((x[:,-1],u)))
+    _,y_pred,_ = n_phy_prob(x)
+    fake_logits_u = D(torch.concat((x[:,-1],y_pred)))
 
     D_loss = discriminator_loss(real_logits,fake_logits_u)
     D_loss.backward(retain_graph=True)
