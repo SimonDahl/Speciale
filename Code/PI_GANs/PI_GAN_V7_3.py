@@ -1,8 +1,6 @@
 # er lavet helt som i artiklen, har både boundary points og tager kun et punkt af gangen som input. ser ikke ud til at lære noget som helst 
 
 
-# hvis compute res er test equaion ligner det rent faktisk den, på trods af data er pendul 
-
 # prerequisites
 from ast import arg
 from tkinter import X
@@ -26,10 +24,10 @@ from scipy.integrate import odeint
 
 n_data = 1
 bs = 1
-time_limit = 5
-n_col = 200
+time_limit = 3
+n_col = 150
 m = 1
-k = 1
+k = 2
 
 
 #y_data = np.cos(x_data*np.sqrt(k)) # Exact solution for (0,1) boundary condition
@@ -41,38 +39,31 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 300
+n_epochs = 400
 
 gen_epoch = 5
-lambda_phy = 2
+lambda_phy = 1
 lambda_q = 1
 #y_data = -k*np.cos()+k
 t = np.linspace(0, time_limit, n_col)
 
 lam = 1
-
-
-def pend(x, t, m, k):
-    x1,x2 = x
-    dxdt = [x2, -m*x2 - k*np.sin(x1)]
+def test_equation(x, t,lam):
+    dxdt = lam*x
     return dxdt
-
-
 
 sol_data = np.zeros((n_data,n_col))
 y_b = np.zeros((n_data,1))
 
+
 for i in range(n_data):
-    #m = np.random.uniform(1,5)
-    x0 = [np.random.uniform(1,3),0]
-    sol = odeint(pend, x0, t, args=(m, k))
-    sol_data[i,:] = sol[:,0]
-    y_b[i] = x0[0]
-print('Data generation complete')
+    x0 = np.random.uniform(1,3)
+    sol = odeint(test_equation, x0, t, args=(lam,))
+    sol_data[i,:] = sol[:,-1]
+    y_b[i] = x0
 
 
-
-x_col = np.linspace(0.1, time_limit, n_col)
+x_col = np.linspace(0, time_limit, n_col)
 
 x_b = np.zeros([1])
 x_b = Variable(torch.from_numpy(x_b).float(), requires_grad=True).to(device)
@@ -158,6 +149,7 @@ Q_optimizer = optim.Adam(Q.parameters(), lr=lr)
 
 
 
+
 # Physics-Informed residual on the collocation points         
 def compute_residuals(x_collocation):
     z = Variable(torch.randn(z_dim).to(device))
@@ -167,10 +159,12 @@ def compute_residuals(x_collocation):
         u = G(torch.concat((x,z)))
         u_t = torch.autograd.grad(u.sum(), x, create_graph=True)[0]
         u_tt = torch.autograd.grad(u_t.sum(), x, create_graph=True)[0]
-        r_ode[i]= m*u_tt+k*x
+        r_ode[i]= lam*u - u_tt
             
-    res = np.mean(r_ode**2)
+    res = np.mean(r_ode**2)/n_col
     return res,r_ode
+
+
 def n_phy_prob(x):
     noise = Variable(torch.randn(z_dim).to(device))
     g_input = torch.concat((x,noise))
@@ -266,8 +260,7 @@ for epoch in range(1, n_epochs+1):
         D_losses.append(D_train(x_b,y_train))
         G_losses.append(G_train(x_b,y_train))
         Q_losses.append(Q_train(x_b))
-        
-        
+
     print('[%d/%d]: loss_d: %.3f, loss_g: %.3f' % (
             (epoch), n_epochs, torch.mean(torch.FloatTensor(D_losses)), torch.mean(torch.FloatTensor(G_losses))))
                                                                                                                     
@@ -294,7 +287,9 @@ t_plot = t_test.cpu().detach().numpy()
 plt.plot(t_plot,res_plot)
 plt.show()
 
-""" 
+
+
+
 u_plot = np.zeros(n_col)
 
 for i in range(5):
@@ -303,4 +298,4 @@ for i in range(5):
         u_plot[i] = G(torch.concat((t_sample[i],z)))
     plt.plot(t,u_plot)
 plt.show() 
- """
+

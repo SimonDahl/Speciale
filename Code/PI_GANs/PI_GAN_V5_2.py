@@ -101,10 +101,10 @@ class Generator(nn.Module):
         
     # forward method
     def forward(self,y):
-        y = torch.tanh(self.fc1(y)) # leaky relu, with slope angle 
-        y = torch.tanh(self.fc2(y)) 
-        y = torch.tanh(self.fc3(y))
-        y = torch.tanh(self.fc4(y))
+        y = torch.relu(self.fc1(y)) # leaky relu, with slope angle 
+        y = torch.relu(self.fc2(y)) 
+        y = torch.relu(self.fc3(y))
+        y = torch.relu(self.fc4(y))
         #return torch.tanh(self.fc4(x))
         return self.fc5(y) 
 
@@ -147,11 +147,15 @@ D_optimizer = optim.Adam(D.parameters(), lr=lr)
 # Physics-Informed residual on the collocation points         
 def compute_residuals(x,z):
    # m,k = G.getODEParam()
+    
     g_input = torch.concat((x,z))
+    
     u = G(g_input[:,-1])
-    u_t = torch.autograd.grad(u.sum(), x_data, create_graph=True)[0]
-    u_tt = torch.autograd.grad(u_t.sum(), x_data, create_graph=True)[0]
-    r_ode = m*u_tt+k*x
+    
+    u_t = torch.autograd.grad(u.sum(), x, create_graph=True)[0]
+    #u_tt = torch.autograd.grad(u_t.sum(), x, create_graph=True)[0]
+    #r_ode = m*u_tt+k*x
+    r_ode = u*k - u_t
     return r_ode 
 
 
@@ -242,8 +246,7 @@ for epoch in range(1, n_epochs+1):
     print('[%d/%d]: loss_d: %.3f, loss_g: %.3f' % (
             (epoch), n_epochs, torch.mean(torch.FloatTensor(D_losses)), torch.mean(torch.FloatTensor(G_losses))))
                                                                                                                     
-                                        
-
+                         
 #%%
 """ 
 x_plot = x_data.cpu().detach().numpy()
@@ -252,6 +255,18 @@ plt.plot(x_plot,y_plot)
       #plt.title('batch_idx'+str(batch_idx)+'epoch'+str(epoch))
 plt.show()
 """
+
+
+t_test = np.linspace(0, time_limit, n_col)
+t_test = t_test.reshape(n_col,1)
+t_test = Variable(torch.from_numpy(t_test).float(), requires_grad=True).to(device)
+
+z_test = Variable(torch.randn(z_dim,1).to(device))
+res = compute_residuals(t_test,z_test)
+res_plot = res.cpu().detach().numpy()
+t_plot = t_test.cpu().detach().numpy()
+plt.plot(t_plot,res_plot)
+plt.show()
 
 
 with torch.no_grad():
