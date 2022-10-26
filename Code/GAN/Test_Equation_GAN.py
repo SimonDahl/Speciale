@@ -29,19 +29,19 @@ args = parser.parse_args()
 
 #%% Hyperparameters
 
-bs = 500
-n_data = 20000
+bs = 5
+n_data = 20
 timesteps = 500
 slope = 0.01
 drop = 0.2
 criterion = nn.BCELoss() 
-lr = args.lr
-#lr = 0.0001
-np.random.seed(2022)
-n_epochs = args.n_epochs
-#n_epochs = 1
-z_dim = args.z_dim
-#z_dim = 100
+#lr = args.lr
+lr = 0.0001
+#np.random.seed(2022)
+#n_epochs = args.n_epochs
+n_epochs = 100
+#z_dim = args.z_dim
+z_dim = 100
 
 #%% Generate data 
 
@@ -204,7 +204,7 @@ with torch.no_grad():
     
     
     fig.suptitle('n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr),fontsize="x-large")
-    #plt.show()
-    plt.savefig('./output/GAN/Test_Equation/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr)+'.png')     
+    plt.show()
+   # plt.savefig('./output/GAN/Test_Equation/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr)+'.png')     
                                                                                                                         
 # %%

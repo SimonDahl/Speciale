@@ -24,7 +24,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from scipy.integrate import odeint
 
 
-n_data = 1
+n_data = 10
 bs = 1
 time_limit = 5
 n_col = 200

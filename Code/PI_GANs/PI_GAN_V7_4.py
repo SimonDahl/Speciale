@@ -31,7 +31,7 @@ k = 2
 
 
 #y_data = np.cos(x_data*np.sqrt(k)) # Exact solution for (0,1) boundary condition
-n_neurons = 50
+n_neurons = 10
 lr = 0.001
 drop = 0.0
 z_dim = 1
@@ -39,7 +39,7 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 100
+n_epochs = 1
 
 gen_epoch = 5
 lambda_phy = 0.2

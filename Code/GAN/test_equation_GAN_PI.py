@@ -30,44 +30,40 @@ args = parser.parse_args()
 #%% Hyperparameters
 
 bs = 5
-n_data = 5
+n_data = 20
 timesteps = 500
 slope = 0.01
 drop = 0.2
 criterion = nn.BCELoss() 
+criterion_mse = nn.MSELoss()
 #lr = args.lr
-lr = 0.001
-
+lr = 0.0001
+#np.random.seed(2022)
 #n_epochs = args.n_epochs
+n_epochs = 1
 #z_dim = args.z_dim
-n_epochs = 100
 z_dim = 100
 
 #%% Generate data 
 
-def pend(x, t, m, k):
-    x1,x2 = x
-    dxdt = [x2, -m*x2 - k*np.sin(x1)]
-    return dxdt
-
-
-t = np.linspace(0, 10, timesteps)
-   
 x = np.zeros((n_data,timesteps))
+t = np.linspace(0, 1, timesteps)
 
 for i in range(n_data):
-    x0 = [np.random.uniform(1,3),0]
-    m = 1
-    k = 2
-    sol = odeint(pend, x0, t, args=(m, k))
-    x[i,:] = sol[:,0]
-print('Data generation complete')
+    k = np.random.uniform(-5,5)
+    x[i,:] = np.exp(k*t)
+   
+""" for i in range(n_data):
+    plt.plot(t,x[i,:])
+plt.show() """
 
-#print(x.shape)
-    
-#plt.plot(t, x[0, :], 'b', label='theta(t)')
-#plt.show()
+t_data = Variable(torch.from_numpy(t).float(), requires_grad=True).to(device)
 
+
+n_col = timesteps
+x_col = np.linspace(0, 1, n_col)   
+x_col = x_col.reshape(1,n_col)
+x_col = Variable(torch.from_numpy(x_col).float(), requires_grad=True).to(device)   
    
 #%% Ready data
 
@@ -132,6 +128,22 @@ D = Discriminator(timesteps).to(device)
 G_optimizer = optim.Adam(G.parameters(), lr = lr)
 D_optimizer = optim.Adam(D.parameters(), lr = lr)
 
+# Physics-Informed residual on the collocation points         
+def compute_residuals(x_collocation):
+    z = Variable(torch.randn(1, z_dim).to(device))
+    
+    u = G(z)
+    #u = u[:,-1]
+    #x_col = x_col[:,-1]
+    print(u.shape)
+    print(x_collocation.shape)
+    u_t = torch.autograd.grad(u.sum(), x_collocation, create_graph=True,allow_unused=True)[0]
+    #u_tt = torch.autograd.grad(u_t.sum(), x_collocation, create_graph=True)[0]
+    r_ode= k*u - u_t
+                      
+    return r_ode
+
+
 
 #%% Define training loops 
 # 
@@ -144,7 +156,12 @@ def G_train(x):
 
     G_output = G(z)
     D_output = D(G_output)
-    G_loss = criterion(D_output, y)
+    
+    r_ode = compute_residuals(x_col)
+    target = torch.zeros_like(r_ode)
+    mse_loss = criterion_mse(r_ode,target)
+    
+    G_loss = criterion(D_output, y) + mse_loss
 
     # gradient backprop & optimize ONLY G's parameters
     G_loss.backward()
@@ -161,9 +178,11 @@ def D_train(x):
     x_real, y_real = x, torch.ones(bs,1)
 
     x_real, y_real = Variable(x_real.to(device)), Variable(y_real.to(device))
-
+    
     D_output = D(x_real)
+    
     D_real_loss = criterion(D_output, y_real)
+    
     D_real_score = D_output
 
     # train discriminator on fake
@@ -183,6 +202,11 @@ def D_train(x):
     return  D_loss.data.item()
 
 
+r_ode = compute_residuals(x_col)
+print(r_ode) 
+
+
+""" 
 #%% 
 for epoch in range(1, n_epochs+1):           
     D_losses, G_losses = [], []
@@ -218,6 +242,7 @@ with torch.no_grad():
     
     fig.suptitle('n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr),fontsize="x-large")
     plt.show()
-    #plt.savefig('./output/GAN/Pendulum/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr)+'.png')     
+   # plt.savefig('./output/GAN/Test_Equation/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr)+'.png')     
                                                                                                                         
 # %%
+ """

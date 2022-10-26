@@ -39,8 +39,8 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 400
-
+n_epochs = 100
+lambda_val = 0.05
 gen_epoch = 5
 lambda_phy = 1
 lambda_q = 1
@@ -63,7 +63,7 @@ for i in range(n_data):
     y_b[i] = x0
 
 
-x_col = np.linspace(0, time_limit, n_col)
+x_col = np.linspace(0.1, time_limit, n_col)
 
 x_b = np.zeros([1])
 x_b = Variable(torch.from_numpy(x_b).float(), requires_grad=True).to(device)
@@ -138,7 +138,7 @@ class Q_net(nn.Module):
 
 # build network
 G = Generator(g_input_dim = z_dim+x_dim, g_output_dim = y_dim).to(device)
-D = Discriminator(x_dim+y_dim).to(device)
+D = Discriminator(x_dim+y_dim+1).to(device)
 Q = Q_net(x_dim+y_dim,z_dim)
 
 
@@ -146,7 +146,6 @@ Q = Q_net(x_dim+y_dim,z_dim)
 G_optimizer = optim.Adam(G.parameters(), lr=lr)
 D_optimizer = optim.Adam(D.parameters(), lr=lr)
 Q_optimizer = optim.Adam(Q.parameters(), lr=lr)
-
 
 
 
@@ -158,18 +157,18 @@ def compute_residuals(x_collocation):
         x = x_collocation[i]
         u = G(torch.concat((x,z)))
         u_t = torch.autograd.grad(u.sum(), x, create_graph=True)[0]
-        #u_tt = torch.autograd.grad(u_t.sum(), x, create_graph=True)[0]
-        r_ode[i]= lam*u - u_t
-            
-    res = np.mean(r_ode**2)/n_col
-    return res,r_ode
-
-
+        r_ode[i]= lam*x - u_t
+    
+    res = np.mean(r_ode**2)
+    return res
 def n_phy_prob(x):
     noise = Variable(torch.randn(z_dim).to(device))
     g_input = torch.concat((x,noise))
     u = G(g_input)
-    return u,noise
+    residual = compute_residuals(x_col)
+    n_phy = torch.exp(-lambda_val * (residual**2))
+    
+    return u,noise,n_phy
 
 def discriminator_loss(logits_real_u, logits_fake_u):
         loss =  - torch.mean(torch.log(1.0 - torch.sigmoid(logits_real_u) + 1e-8) + torch.log(torch.sigmoid(logits_fake_u) + 1e-8)) 
@@ -180,9 +179,13 @@ def D_train(x,y_train):
     
     D_optimizer.zero_grad()
      
-     
+    real_prob = torch.ones(1)
     # real y value for Discriminator  
-    d_input = torch.concat((x,y_train))
+    
+    print(x.shape)
+    print(real_prob.shape)
+    
+    d_input = torch.concat((x,y_train,real_prob))
     real_logits = D(d_input)
   
     # physics loss for boundary point 
@@ -204,7 +207,7 @@ def G_train(x,y_train):
 
         #physics loss for collocation points
         
-        phy_loss,_  = compute_residuals(x_col)
+        phy_loss  = compute_residuals(x_col)
 
         # physics loss for boundary points 
         
@@ -253,7 +256,7 @@ for epoch in range(1, n_epochs+1):
         if n_data > 1:
             idx = np.random.randint(0,n_data)
             y_train = y_b[idx]       
-            y_train = y_train[0]
+            #y_train = y_train[0]
         else: 
             y_train = y_b[0]
         
@@ -276,18 +279,6 @@ for i in range(n_col):
 
 plt.plot(t,u_plot)
 plt.show() """
-
-t_test = np.linspace(0, time_limit, n_col)
-t_test = t_test.reshape(n_col,1)
-t_test = Variable(torch.from_numpy(t_test).float(), requires_grad=True).to(device)
-
-
-res,res_plot = compute_residuals(t_test)
-t_plot = t_test.cpu().detach().numpy()
-plt.plot(t_plot,res_plot)
-plt.show()
-
-
 
 
 u_plot = np.zeros(n_col)

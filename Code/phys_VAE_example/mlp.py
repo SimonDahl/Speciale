@@ -1,3 +1,4 @@
+
 import torch
 import torch.nn as nn
 
@@ -41,5 +42,3 @@ class MLP(nn.Module):
     def forward(self, x:torch.Tensor):
         out = self.net(x.view(-1, self.dim_in))
         return out
-    
-    

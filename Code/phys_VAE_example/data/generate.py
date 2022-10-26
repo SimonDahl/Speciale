@@ -1,3 +1,4 @@
+
 """Generate data of forced damped pendulum.
 """
 
@@ -52,20 +53,20 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # output
-    parser.add_argument('--outdir', type=str, default=r"C:\Users\Ejer\OneDrive - Danmarks Tekniske Universitet\Dokumenter\GitHub\Speciale\Code\PI_VAE\data")
-    parser.add_argument('--name', type=str, default="train_data")
+    parser.add_argument('--outdir', type=str, default=r"C:\Users\Ejer\OneDrive - Danmarks Tekniske Universitet\Dokumenter\GitHub\Speciale\Code\phys_VAE_example\data")
+    parser.add_argument('--name', type=str, default="test")
 
     # configurations
     parser.add_argument('--n-samples', type=int, default=1000)
     parser.add_argument('--len-episode', type=int, default=50)
-    parser.add_argument('--dt', type=float, default=0.1)
-    parser.add_argument('--range-init', type=float, nargs=2, default=[0.0, np.pi/2.0])
-    parser.add_argument('--range-omega', type=float, nargs=2, default=[np.pi/4.0, np.pi/2.0])
-    parser.add_argument('--range-gamma', type=float, nargs=2, default=[0.0, 0.4])
-    parser.add_argument('--range-A', type=float, nargs=2, default=[0.1, 1.0])
-    parser.add_argument('--range-f', type=float, nargs=2, default=[np.pi/2.0, np.pi])
+    parser.add_argument('--dt', type=float, default=0.05)
+    parser.add_argument('--range-init', type=float, nargs=2, default=[-1.57, 1.57])
+    parser.add_argument('--range-omega', type=float, nargs=2, default=[0.785, np.pi])
+    parser.add_argument('--range-gamma', type=float, nargs=2, default=[0.0, 0.8])
+    parser.add_argument('--range-A', type=float, nargs=2, default=[0.0, 40.0])
+    parser.add_argument('--range-f', type=float, nargs=2, default=[np.pi, 2*np.pi])
     parser.add_argument('--noise-std', type=float, default=1e-2)
-    parser.add_argument('--seed', type=int, default=1234567890)
+    parser.add_argument('--seed', type=int, default=1236)
     args = parser.parse_args()
 
     # check inputs

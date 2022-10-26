@@ -22,13 +22,13 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from scipy.integrate import odeint
 
 
-n_data = 1
+n_data = 10
 bs = 1
 time_limit = 3
 n_col = 150
 m = 1
 k = 2
-
+lam_q = 1
 
 #y_data = np.cos(x_data*np.sqrt(k)) # Exact solution for (0,1) boundary condition
 n_neurons = 50
@@ -39,10 +39,10 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 100
+n_epochs = 1000
 
 gen_epoch = 5
-lambda_phy = 1
+lambda_phy = 100
 lambda_q = 1
 #y_data = -k*np.cos()+k
 t = np.linspace(0, time_limit, n_col)
@@ -87,54 +87,47 @@ class Generator(nn.Module):
     def __init__(self, g_input_dim, g_output_dim):
         super(Generator, self).__init__()       
         self.fc1 = nn.Linear(g_input_dim, n_neurons)
-        self.fc2 = nn.Linear(n_neurons, n_neurons)
-        self.fc3 = nn.Linear(n_neurons, n_neurons)
-        self.fc4 = nn.Linear(n_neurons, g_output_dim)
+        self.fc2 = nn.Linear(n_neurons, g_output_dim)
     
         
         
     # forward method
     def forward(self,y):
         y = torch.tanh(self.fc1(y)) # leaky relu, with slope angle 
-        y = torch.tanh(self.fc2(y)) 
-        y = torch.tanh(self.fc3(y))
+ 
          #return torch.tanh(self.fc4(x))
-        return self.fc4(y) 
+        return self.fc2(y) 
 
     
 class Discriminator(nn.Module):
     def __init__(self, d_input_dim):
         super(Discriminator, self).__init__()
         self.fc1 = nn.Linear(d_input_dim, n_neurons)
-        self.fc2 = nn.Linear(n_neurons,n_neurons)
-        self.fc3 = nn.Linear(n_neurons,n_neurons)
-        self.fc4 = nn.Linear(n_neurons, 1)  # output dim = 1 for binary classification 
+       
+        self.fc2 = nn.Linear(n_neurons, 1)  # output dim = 1 for binary classification 
     
     # forward method
     def forward(self, d):
         d = torch.tanh(self.fc1(d))
         d = F.dropout(d, drop)
-        d = torch.tanh(self.fc2(d))
-        d = F.dropout(d, drop)
-        d = torch.tanh(self.fc3(d))
-        d = F.dropout(d, drop)
+
         
-        return ((self.fc4(d)))  # sigmoid for probaility 
+        return ((self.fc2(d)))  # sigmoid for probaility 
         
 
 class Q_net(nn.Module):
     def __init__(self, Q_input_dim,Q_output_dim):
         super(Q_net, self).__init__()
         self.fc1 = nn.Linear(Q_input_dim, n_neurons)
-        self.fc2 = nn.Linear(n_neurons,n_neurons)
-        self.fc3 = nn.Linear(n_neurons,Q_output_dim)
+       
+        self.fc2 = nn.Linear(n_neurons,Q_output_dim)
     
     def forward(self,q):
      
         q = torch.tanh(self.fc1(q)) # leaky relu, with slope angle 
-        q = torch.tanh(self.fc2(q))
+    
         
-        return (self.fc3(q))
+        return (self.fc2(q))
 
 # build network
 G = Generator(g_input_dim = z_dim+x_dim, g_output_dim = y_dim).to(device)
@@ -157,7 +150,10 @@ def compute_residuals(x_collocation):
         x = x_collocation[i]
         u = G(torch.concat((x,z)))
         u_t = torch.autograd.grad(u.sum(), x, create_graph=True)[0]
+        
+        
         r_ode[i]= lam*x - u_t
+        
     
     res = np.mean(r_ode**2)
     return res
@@ -213,11 +209,12 @@ def G_train(x,y_train):
         mse_loss = criterion_mse(y_pred,y_train)
         adv_loss = fake_logits_u
         
+        log_q = torch.mean(G_noise-z_pred)
         
         """ print(phy_loss)
         p_loss = criterion_mse(phy_loss,np.zeros_like(phy_loss)) """
 
-        G_loss = adv_loss + lambda_phy* phy_loss + lambda_q * mse_loss_z
+        G_loss = adv_loss + lambda_phy* phy_loss + lambda_q * mse_loss_z + (1.0-lam_q)*log_q 
 
 
         G_loss.backward(retain_graph=True)
@@ -249,7 +246,7 @@ for epoch in range(1, n_epochs+1):
         if n_data > 1:
             idx = np.random.randint(0,n_data)
             y_train = y_b[idx]       
-            y_train = y_train[0]
+            #y_train = y_train[0]
         else: 
             y_train = y_b[0]
         

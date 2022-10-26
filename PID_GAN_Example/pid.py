@@ -12,7 +12,9 @@ class Burgers_PID():
         
         # Normalize data
         self.Xmean, self.Xstd = x_f.mean(0), x_f.std(0)
+        
         self.x_f = (x_f - self.Xmean) / self.Xstd
+        print(self.x_f.shape)
         self.x_u = (x_u - self.Xmean) / self.Xstd
         self.X_star_norm = (X_star - self.Xmean) / self.Xstd
         self.u_star = u_star
@@ -92,8 +94,10 @@ class Burgers_PID():
         t = torch.tensor(X[:, 1:2], requires_grad=True).float().to(self.device)
         noise = self.sample_noise(number=X.shape[0])
         u = self.G(torch.cat([x, t, noise], dim=1))
+        print(u.shape)
         residual = self.phy_residual(x, t, u)
         n_phy = torch.exp(-self.lambda_val * (residual**2))
+        print(n_phy)
         return n_phy, residual, u, noise
     
     def predict(self, X):
@@ -125,6 +129,7 @@ class Burgers_PID():
 
         error_u = np.linalg.norm(self.u_star-u_pred,2)/np.linalg.norm(self.u_star,2)
         residual = (f_pred**2).mean()
+        print(self.x_f.shape)
 
 #         U_pred = griddata(X_star, u_pred.flatten(), (X, T), method='cubic')
 
@@ -155,8 +160,12 @@ class Burgers_PID():
 
         d_loss.backward(retain_graph=True)
         self.D_optimizer.step()
+        print(n_phy)
         
         return d_loss
+
+    
+    
     
     def train_generator(self, x, y):
         # training generator...
@@ -193,6 +202,8 @@ class Burgers_PID():
         return q_loss
     
     def train(self):
+        print("training")
+        
         Adv_loss = np.zeros(self.nepochs)
         G_loss = np.zeros(self.nepochs)
         D_loss = np.zeros(self.nepochs)

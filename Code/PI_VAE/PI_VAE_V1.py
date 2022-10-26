@@ -12,75 +12,75 @@ from sklearn.model_selection import train_test_split
 from scipy.integrate import odeint
 import argparse
 
-parser = argparse.ArgumentParser()
-
-parser.add_argument('--n_epochs',help='Number of epochs',type=int)
-parser.add_argument('--z_dim_size',help='Number of z dims',type=int)
-parser.add_argument('--lr',help='Learning rate',type=float)
-
-
-args = parser.parse_args()
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-
 #%%
 # batch size 
-bs = 50
-#n_epochs = args.n_epochs
+bs = 500
 n_epochs = 3000
-# latent space size 
-#z_dim_size = args.z_dim_size
 z_dim_size = 3
 
 np.random.seed(1234)
-#lr = args.lr   #3e-4
 lr = 0.001
-timesteps =200
-n_data = 100
-
+timesteps = 500
+n_data = 1000
+time_limit = 1
+n_col = timesteps
 
 
 #%% Generate data 
 
+t = np.linspace(0, time_limit, n_col)
+
 k = 1
-
-t = np.linspace(0, 1, timesteps)
-
-
-
 def test_equation(x, t,k):
     dxdt = k*x
     return dxdt
 
-x = np.zeros((n_data,timesteps))
+sol_data = np.zeros((n_data,n_col))
 
 
 
 for i in range(n_data):
     x0 = np.random.uniform(1,3)
     sol = odeint(test_equation, x0, t, args=(k,))
-    x[i,:] = sol[:,-1]
+    sol_data[i,:] = sol[:,-1]
+   
+x_col =  np.linspace(0, time_limit, n_col)
+x_col = Variable(torch.from_numpy(x_col).float(), requires_grad=True).to(device)
 
 
+
+y = sol_data 
+print(np.isnan(y).any())
+
+
+
+
+""" for i in range(10):
+    
+    plt.plot(t,y[i,:])
+plt.show()
+ """
 
 #%%
 
 # split into test, validation, and training sets
-x_temp, x_test, _, _ = train_test_split(x, x, test_size=0.05)
-x_train, x_valid, _, _ = train_test_split(x_temp,
-                                          x_temp,
+y_temp, y_test, _, _ = train_test_split(y, y, test_size=0.05)
+y_train, y_valid, _, _ = train_test_split(y_temp,
+                                          y_temp,
                                           test_size=0.1)
-n_train = len(x_train)
-n_valid = len(x_valid)
-n_test = len(x_test)
+n_train = len(y_train)
+n_valid = len(y_valid)
+n_test = len(y_test)
 
 #print(n_train)
 
 
-train_set = torch.from_numpy(x_train)
-test_set = torch.from_numpy(x_test)
+train_set = torch.from_numpy(y_train)
+test_set = torch.from_numpy(y_test)
 
 train_set = train_set.float()
 test_set = test_set.float()
@@ -148,13 +148,35 @@ if torch.cuda.is_available():
     vae.cuda()
 
 
+# Physics-Informed residual on the collocation points         
+def compute_residuals(x_col):
+   # m,k = G.getODEParam()
+    
+    z = vae.encoder(x_col)
+    z = torch.stack(z,dim=0)
+
+    sample = vae.sampling(z[0],z[1])
+    u = vae.decoder(sample)
+    u_t = torch.autograd.grad(u.sum(), x_col, create_graph=True)[0]
+    res = k*x_col - u_t
+    r_ode = torch.sum(res**2)
+    return r_ode
+
 #%%
 
+
+
 optimizer = optim.Adam(vae.parameters(),lr=lr)
-def loss_function(recon_x, x, mu, log_var):
+def loss_function(recon_x, x, mu, log_var,x_col):
     MSE = F.mse_loss(recon_x, x.view(-1, timesteps), reduction='sum')
     KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
-    return MSE + KLD
+    r_ode = compute_residuals(x_col)
+    return MSE + KLD + r_ode 
+  
+def test_loss_function(recon_x, x, mu, log_var):
+    MSE = F.mse_loss(recon_x, x.view(-1, timesteps), reduction='sum')
+    KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
+    return MSE + KLD 
   
 #%%
 
@@ -167,7 +189,7 @@ def train(epoch):
         optimizer.zero_grad()
         
         recon_batch, mu, log_var = vae(data)
-        loss = loss_function(recon_batch, data, mu, log_var)
+        loss = loss_function(recon_batch, data, mu, log_var,x_col)
         
         loss.backward()
         train_loss += loss.item()
@@ -187,7 +209,7 @@ def test():
             recon, mu, log_var = vae(data)
             
             # sum up batch loss
-            test_loss += loss_function(recon, data, mu, log_var).item()
+            test_loss += test_loss_function(recon, data, mu, log_var).item()
         
     test_loss /= len(test_loader.dataset)
     if epoch % 20 == 0:
@@ -237,6 +259,15 @@ plt.legend(loc='upper right')
 plt.show()
 
 
+
+
+
+
+
+
+
+
+
 with torch.no_grad():
 
 
@@ -265,4 +296,3 @@ with torch.no_grad():
     #plt.savefig('./output/VAE/Test_Equation/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+'.png')
      
     plt.show()
-

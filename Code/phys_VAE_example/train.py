@@ -10,62 +10,60 @@ import torch.utils.data
 
 from model import VAE
 import utils
-from mpl_file import MLP
 # from model import VAE
 # import sys; sys.path.append('../'); import utils
-
 
 
 def set_parser():
     parser = argparse.ArgumentParser(description='')
 
     # input/output setting
-    parser.add_argument('--outdir', type=str, default=r"C:\Users\Ejer\OneDrive - Danmarks Tekniske Universitet\Dokumenter\GitHub\Speciale\Code\PI_VAE\output")
-    parser.add_argument('--datadir', type=str, default=r"C:\Users\Ejer\OneDrive - Danmarks Tekniske Universitet\Dokumenter\GitHub\Speciale\Code\PI_VAE\data")
-    parser.add_argument('--dataname-train', type=str, default='train_data')
-    parser.add_argument('--dataname-valid', type=str, default='true_params_train_data')
+    parser.add_argument('--outdir', type=str, default=r"C:\Users\Ejer\OneDrive - Danmarks Tekniske Universitet\Dokumenter\GitHub\Speciale\Code\phys_VAE_example\output")
+    parser.add_argument('--datadir', type=str, default=r"C:\Users\Ejer\OneDrive - Danmarks Tekniske Universitet\Dokumenter\GitHub\Speciale\Code\phys_VAE_example\data")
+    parser.add_argument('--dataname-train', type=str, default='train')
+    parser.add_argument('--dataname-valid', type=str, default='valid')
 
     # prior knowledge
-    parser.add_argument('--range-omega', type=float, nargs=2, default=[0.0, np.pi])
+    parser.add_argument('--range-omega', type=float, nargs=2, default=[0.392, 3.53])
 
     # model (general)
-    parser.add_argument('--dim-z-aux1', type=int,default=1 , help="if 0, aux1 is still alive without latent variable; set -1 to deactivate")
-    parser.add_argument('--dim-z-aux2', type=int, default=1, help="if 0, aux2 is still alive without latent variable; set -1 to deactivate")
-    parser.add_argument('--activation', type=str, default='relu') #choices=['relu','leakyrelu','elu','softplus','prelu'],
+    parser.add_argument('--dim-z-aux1', type=int, default=1, help="if 0, aux1 is still alive without latent variable; set -1 to deactivate")
+    parser.add_argument('--dim-z-aux2', type=int, default=2, help="if 0, aux2 is still alive without latent variable; set -1 to deactivate")
+    parser.add_argument('--activation', type=str, default='elu') #choices=['relu','leakyrelu','elu','softplus','prelu'],
     parser.add_argument('--ode-solver', type=str, default='euler')
     parser.add_argument('--intg-lev', type=int, default=1)
     parser.add_argument('--no-phy', action='store_true', default=False)
 
     # model (decoder)
-    parser.add_argument('--x-lnvar', type=float, default=-8.0)
-    parser.add_argument('--hidlayers-aux1-dec', type=int, nargs='+', default=[128,])
-    parser.add_argument('--hidlayers-aux2-dec', type=int, nargs='+', default=[128,])
+    parser.add_argument('--x-lnvar', type=float, default=-9.0)
+    parser.add_argument('--hidlayers-aux1-dec', type=int, nargs='+', default=[64,64])
+    parser.add_argument('--hidlayers-aux2-dec', type=int, nargs='+', default=[128,128])
 
     # model (encoder)
-    parser.add_argument('--hidlayers-aux1-enc', type=int, nargs='+', default=[128,])
-    parser.add_argument('--hidlayers-aux2-enc', type=int, nargs='+', default=[128,])
-    parser.add_argument('--hidlayers-unmixer', type=int, nargs='+', default=[128,])
-    parser.add_argument('--hidlayers-omega', type=int, nargs='+', default=[128])
+    parser.add_argument('--hidlayers-aux1-enc', type=int, nargs='+', default=[64,32])
+    parser.add_argument('--hidlayers-aux2-enc', type=int, nargs='+', default=[64,32])
+    parser.add_argument('--hidlayers-unmixer', type=int, nargs='+', default=[128,128])
+    parser.add_argument('--hidlayers-omega', type=int, nargs='+', default=[64,32])
     parser.add_argument('--arch-feat', type=str, default='mlp')
     parser.add_argument('--num-units-feat', type=int, default=256)
-    parser.add_argument('--hidlayers-feat', type=int, nargs='+', default=[256,])
+    parser.add_argument('--hidlayers-feat', type=int, nargs='+', default=[128,128])
     parser.add_argument('--num-rnns-feat', type=int, default=1)
 
     # optimization (base)
     parser.add_argument('--learning-rate', type=float, default=1e-3)
-    parser.add_argument('--weight-decay', type=float, default=1e-3)
+    parser.add_argument('--weight-decay', type=float, default=1e-6)
     parser.add_argument('--adam-eps', type=float, default=1e-3)
-    parser.add_argument('--grad-clip', type=float, default=10.0)
+    parser.add_argument('--grad-clip', type=float, default=5)
     parser.add_argument('--batch-size', type=int, default=200)
     parser.add_argument('--epochs', type=int, default=5000)
     parser.add_argument('--balance-kld', type=float, default=1.0)
-    parser.add_argument('--balance-unmix', type=float, default=0.0)
-    parser.add_argument('--balance-dataug', type=float, default=0.0)
-    parser.add_argument('--balance-lact-dec', type=float, default=0.0)
-    parser.add_argument('--balance-lact-enc', type=float, default=0.0)
+    parser.add_argument('--balance-unmix', type=float, default=1e-3)
+    parser.add_argument('--balance-dataug', type=float, default=1e-1)
+    parser.add_argument('--balance-lact-dec', type=float, default=1e-2)
+    parser.add_argument('--balance-lact-enc', type=float, default=1e-2)
 
     # others
-    parser.add_argument('--train-size', type=int, default=-1)
+    parser.add_argument('--train-size', type=int, default=1000)
     parser.add_argument('--save-interval', type=int, default=999999999)
     parser.add_argument('--num-workers', type=int, default=0)
     parser.add_argument('--cuda', action='store_true', default=False)

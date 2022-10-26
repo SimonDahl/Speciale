@@ -347,6 +347,9 @@ layers_Q = np.array([X_dim+Y_dim,50,50,50,50,Z_dim])
 layers_T = np.array([X_dim+Y_dim,50,50,1])
 
 # Define the model
+
+print(X_f.shape)
+
 model = ODE_UQPINN(X_f, X_u, Y_u, layers_P, layers_Q, layers_T, lam = 1.5, beta = 1.)
 # Train the model
 model.train(nIter = 3, N_u = 2*N_u, N_f = N_f)

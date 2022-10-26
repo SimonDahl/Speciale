@@ -1,19 +1,14 @@
 """ ODE-based physics-augmented VAE model.
 """
-import os 
-import sys
-#import sys
+
 import torch
 from torch import nn
 from torch.nn import functional as F
 from torchdiffeq import odeint
 
-#import utils
 import utils
-from mpl_file import MLP
-#import MLP
-
-#import mlp
+from mlp import MLP
+# import sys; sys.path.append('../'); import utils; from mlp import MLP
 
 
 # NOTE: z_aux(s) is/are z_A in the paper, and z_phy is z_P in the paper
@@ -253,9 +248,9 @@ class VAE(nn.Module):
         # solve
         tmp = torch.zeros(n,1,device=device)
         if full:
-            initcond = torch.concat([init_y, tmp, init_y, tmp.clone()],dim=1) # <n x 4>
+            initcond = torch.cat([init_y, tmp, init_y, tmp.clone()], dim=1) # <n x 4>
         else:
-            initcond = torch.concat([init_y, tmp],dim=1) # <n x 2>
+            initcond = torch.cat([init_y, tmp], dim=1) # <n x 2>
         yy_seq = odeint(ODEfunc, initcond, self.t_intg, method=self.ode_solver) # <len_intg x n x 2or4>
         yy_seq = yy_seq[range(0, self.len_intg, self.intg_lev)] # subsample to <dim_t x n x 2or4>
 

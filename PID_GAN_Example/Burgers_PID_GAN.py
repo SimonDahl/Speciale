@@ -113,10 +113,10 @@ X_u_train = np.vstack([X_u_train, X_i_train])
 u_train = np.vstack([u_train, u_i_train])
 
 
-print(X_u_train.shape)
-print(u_train.shape)
-print(X_f_train.shape)
-print(X_star.shape)
+#print(X_u_train.shape)
+#print(u_train.shape)
+#print(X_f_train.shape)
+#print(X_star.shape)
 print(X_star.shape)
 
 
@@ -131,8 +131,9 @@ Q = Q_Net(in_dim = 3, out_dim = 1, hid_dim = q_hid_dim, num_layers = q_num_layer
 
 
 
-""" 
-#burgers = Burgers_PID(X_u_train, u_train, X_f_train, X_star, u_star, G, D, Q, device, num_epochs, lambda_val, noise)
+
+
+burgers = Burgers_PID(X_u_train, u_train, X_f_train, X_star, u_star, G, D, Q, device, num_epochs, lambda_val, noise)
 
 #%% 
 #burgers.train()
@@ -163,8 +164,13 @@ U_pred = griddata(X_star, u_pred.flatten(), (X, T), method='cubic')
 U_dev = griddata(X_star, u_dev.flatten(), (X, T), method='cubic')
 Error = np.abs(Exact - U_pred)
 
+x_f_test = burgers.train_x_f
+print(x_f_test.shape)
+
+burgers.train_disriminator
 
 
+""" 
 
 ####### Row 0: u(t,x) ##################    
 X_u_train_ = X_u_train 
@@ -346,4 +352,4 @@ ax.set_title('$t = 0.75$', fontsize = 10)
 
 
 fig, ax = newfig(1.0)
-ax.axis('off') """
+ax.axis('off')  """
