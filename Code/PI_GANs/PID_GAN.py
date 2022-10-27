@@ -21,10 +21,10 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from scipy.integrate import odeint, solve_ivp
 
 
-n_data = 200
+n_data = 10
 bs = 1
 time_limit = 3
-n_col = 10000
+n_col = 200
 
 
 
@@ -37,7 +37,7 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 30000
+n_epochs = 300
 
 gen_epoch = 5
 lambda_phy = 1
@@ -52,10 +52,10 @@ t = np.linspace(0,time_limit,timesteps)
 y_b = np.zeros((n_data,1))
 #y = [2,1]
 m = 1
-k = 2
+k = 1
 
 for i in range(n_data):
-    y_b[i] = np.random.uniform(0,5)
+    y_b[i] = np.random.uniform(1,3)
 
 x_col = np.linspace(0, time_limit, n_col)
 
@@ -147,9 +147,8 @@ def compute_residuals(x,u):
                
     u_t  = torch.autograd.grad(u, x, torch.ones_like(u), retain_graph=True,create_graph=True)[0]# computes dy/dx
     u_tt = torch.autograd.grad(u_t,  x, torch.ones_like(u_t),retain_graph=True ,create_graph=True)[0]# computes d^2y/dx^2
-               
-    r_ode = u_tt + m*u_t + k*u# computes the residual of the 1D harmonic oscillator differential equation
        
+    r_ode = u_tt + m*u_t + k*u# computes the residual of the 1D harmonic oscillator differential equation
        
     return r_ode
 
@@ -321,4 +320,4 @@ with torch.no_grad():
             ax[i,j].plot(t,y)
 
     plt.show()
-    plt.savefig('./output/GAN/Pendulum/'+'PI_GAN_test'.png')     
+    #plt.savefig('./output/GAN/Pendulum/'+'PI_GAN_test'+'.png') 
