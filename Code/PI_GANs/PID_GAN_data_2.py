@@ -14,6 +14,7 @@ from torchvision.utils import save_image
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import random
 import argparse
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 # Device configuration
@@ -21,9 +22,9 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from scipy.integrate import odeint, solve_ivp
 
 
-n_data = 10
+n_data = 22
 bs = 1
-time_limit = 6
+time_limit = 5
 n_col = 2000
 
 
@@ -49,18 +50,42 @@ timesteps = 200
 
 t = np.linspace(0,time_limit,timesteps)
 
-y_b = np.zeros((n_data,1))
+#y_b = np.zeros((n_data,1))
 #y = [2,1]
+
+
+idx = [0,3,4,6,15,21,44,50,58,59,82,89,95,101,111,127,138,150,175,180,189,198]
+
+
 m = 1
 k = 5
+def sho(t,y):
+    solution = (y[1],(-m*y[1]-k*y[0]))
+    return solution
 
-for i in range(n_data):
-   # y_b[i] = np.random.uniform(3,5)
-    y_b[i] = 3
-    
+
+y_train = np.zeros((5,n_data))
+
+
+for i in range(5):
+    y_init = [np.random.uniform(1,5),1]
+    solution = solve_ivp(sho, [0,timesteps], y0 = y_init, t_eval = t)
+    sol_data = solution.y[0]
+    sol_data = list(sol_data[i] for i in idx)
+    sol_data = np.array([sol_data])
+    y_train[i,:] = sol_data
+
+
+  
 x_col = np.linspace(0, time_limit, n_col)
 
-x_b = np.zeros([n_data])
+x_b = list(t[i] for i in idx)
+#y_b = list(y_real[i] for i in idx)
+
+x_b = np.array([x_b])
+#y_b = np.array([y_b])
+
+
 t_sample = t.reshape(timesteps,1)
 #Xmean, Xstd = x_col.mean(0), x_col.std(0)
 #x_col = (x_col - Xmean) / Xstd
@@ -68,18 +93,14 @@ t_sample = t.reshape(timesteps,1)
 #X_star_norm = (t_sample - Xmean) / Xstd 
 
 x_b = Variable(torch.from_numpy(x_b).float(), requires_grad=True).to(device)
-y_b = Variable(torch.from_numpy(y_b).float(), requires_grad=True).to(device)
-y_b = y_b.reshape(n_data,1)
+y_b = Variable(torch.from_numpy(y_train).float(), requires_grad=True).to(device)
+y_b = y_b.reshape(n_data,5)
 x_b = x_b.reshape(n_data,1)
-
 
 
 X_star_norm = Variable(torch.from_numpy(t_sample).float(), requires_grad=True).to(device)
 x_col = x_col.reshape(n_col,1)
 x_col = Variable(torch.from_numpy(x_col).float(), requires_grad=True).to(device)
-
-
-
 
 
 class Generator(nn.Module):
@@ -88,8 +109,7 @@ class Generator(nn.Module):
         self.fc1 = nn.Linear(g_input_dim, n_neurons)
         self.fc2 = nn.Linear(n_neurons, n_neurons)
         self.fc3 = nn.Linear(n_neurons, g_output_dim)
-    
-        
+            
         
     # forward method
     def forward(self,y):
@@ -185,13 +205,15 @@ def D_train(x,y_train):
       
     # real y value for Discriminator  
    
+   
     d_input = torch.cat((x,y_train,real_prob),dim=1)
     real_logits = D(d_input)
     
         
     # physics loss for boundary point 
     u,_,n_phy,_ = n_phy_prob(x)
-   
+
+
     fake_logits_u = D(torch.cat((x,u,n_phy),dim=1))
     
     
@@ -236,7 +258,7 @@ def G_train(x,y_train):
         
         adv_loss = generator_loss(fake_logits_u,fake_logits_col)
         
-        G_loss = adv_loss + lambda_q* mse_loss_z #+mse_loss/n_data
+        G_loss = adv_loss + lambda_q* mse_loss_z +mse_loss/n_data
 
         G_loss.backward(retain_graph=True)
         G_optimizer.step()
@@ -263,46 +285,32 @@ def Q_train(x):
 for epoch in range(1, n_epochs+1):
     D_losses, G_losses,Q_losses = [], [],[]
 
-
-    D_losses.append(D_train(x_b,y_b))
-    G_losses.append(G_train(x_b,y_b))
-    Q_losses.append(Q_train(x_b))
+    for batch in range(5):
+        y_batch = y_b[:,batch]
+        #print(y_batch.shape)
+        #print(x_b.shape)
+        y_batch = y_batch.reshape(n_data,1)
+        
+        
+        
+        D_losses.append(D_train(x_b,y_batch))
+        G_losses.append(G_train(x_b,y_batch))
+        Q_losses.append(Q_train(x_b))
 
     print('[%d/%d]: loss_d: %.3f, loss_g: %.3f' % (
             (epoch), n_epochs, torch.mean(torch.FloatTensor(D_losses)), torch.mean(torch.FloatTensor(G_losses))))
                                                                                                                     
 
-# generata sample
-
 
 with torch.no_grad():
     
     
-    for i in range(3):
+    for i in range(2):
         z = Variable(torch.randn(X_star_norm.shape).to(device))
         generated = G(torch.cat((X_star_norm,z),dim=1))
         y = generated.cpu().detach().numpy()
         plt.plot(t,y)
+    
+    #plt.plot(t,y_real)
     plt.show()
- 
-    
-    
-    
-#%% Generate sample 
-"""
-with torch.no_grad():
-    
-    fig, ax = plt.subplots(2,2)
-    fig.set_figheight(5)
-    fig.set_figwidth(10)
 
-    for i in range(0,2):
-        for j in range(0,2):
-            z = Variable(torch.randn(X_star_norm.shape).to(device))
-            generated = G(torch.cat((X_star_norm,z),dim=1))
-            y = generated.cpu().detach().numpy()
-            ax[i,j].plot(t,y)
-
-    plt.show()
-    #plt.savefig('./output/GAN/Pendulum/'+'PI_GAN_test'+'.png') 
-"""

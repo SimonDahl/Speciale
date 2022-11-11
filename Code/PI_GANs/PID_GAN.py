@@ -21,7 +21,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from scipy.integrate import odeint, solve_ivp
 
 
-n_data = 20
+n_data = 5
 bs = 1
 time_limit = 5
 n_col = 2000
@@ -49,23 +49,25 @@ timesteps = 200
 
 t = np.linspace(0,time_limit,timesteps)
 
-y_b = np.zeros((n_data,1))
+#y_b = np.zeros((n_data,1))
 #y = [2,1]
 m = 1
-k = 1
+k = 3
 
-for i in range(n_data):
-    y_b[i] = np.random.uniform(3,5)
+#for i in range(n_data):
+ #   y_b[i] = np.random.uniform(3,5)
     #y_b[i] = 3
-    
+  
+y_b = np.array([3,-1,3,2,0])  
+  
 x_col = np.linspace(0, time_limit, n_col)
 
-x_b = np.zeros([n_data])
+x_b = np.array([0,1,2,3,4])
 t_sample = t.reshape(timesteps,1)
-Xmean, Xstd = x_col.mean(0), x_col.std(0)
-x_col = (x_col - Xmean) / Xstd
-x_b = (x_b - Xmean) / Xstd
-X_star_norm = (t_sample - Xmean) / Xstd 
+#Xmean, Xstd = x_col.mean(0), x_col.std(0)
+#x_col = (x_col - Xmean) / Xstd
+#x_b = (x_b - Xmean) / Xstd
+#X_star_norm = (t_sample - Xmean) / Xstd 
 
 x_b = Variable(torch.from_numpy(x_b).float(), requires_grad=True).to(device)
 y_b = Variable(torch.from_numpy(y_b).float(), requires_grad=True).to(device)
@@ -74,7 +76,7 @@ x_b = x_b.reshape(n_data,1)
 
 
 
-X_star_norm = Variable(torch.from_numpy(X_star_norm).float(), requires_grad=True).to(device)
+X_star_norm = Variable(torch.from_numpy(t_sample).float(), requires_grad=True).to(device)
 x_col = x_col.reshape(n_col,1)
 x_col = Variable(torch.from_numpy(x_col).float(), requires_grad=True).to(device)
 
@@ -88,8 +90,7 @@ class Generator(nn.Module):
         self.fc1 = nn.Linear(g_input_dim, n_neurons)
         self.fc2 = nn.Linear(n_neurons, n_neurons)
         self.fc3 = nn.Linear(n_neurons, g_output_dim)
-    
-        
+            
         
     # forward method
     def forward(self,y):
@@ -151,10 +152,10 @@ def compute_residuals(x,u):
     u_t  = torch.autograd.grad(u, x, torch.ones_like(u), retain_graph=True,create_graph=True)[0]# computes dy/dx
     u_tt = torch.autograd.grad(u_t,  x, torch.ones_like(u_t),retain_graph=True ,create_graph=True)[0]# computes d^2y/dx^2
        
-    #r_ode = u_tt + m*u_t + k*u# computes the residual of the 1D harmonic oscillator differential equation
+    r_ode = u_tt + m*u_t + k*u# computes the residual of the 1D harmonic oscillator differential equation
     #r_ode = m*u_tt + k*u
      
-    r_ode = k*u-u_t   
+    #r_ode = k*u-u_t   
     return r_ode
 
 
@@ -185,13 +186,15 @@ def D_train(x,y_train):
       
     # real y value for Discriminator  
    
+   
     d_input = torch.cat((x,y_train,real_prob),dim=1)
     real_logits = D(d_input)
     
         
     # physics loss for boundary point 
     u,_,n_phy,_ = n_phy_prob(x)
-   
+
+
     fake_logits_u = D(torch.cat((x,u,n_phy),dim=1))
     
     
