@@ -65,7 +65,7 @@ print('Data generation complete')
 
 #print(x.shape)
     
-#plt.plot(t, x[0, :], 'b', label='theta(t)')
+#plt.plot(t, x[0, 🙂, 'b', label='theta(t)')
 #plt.show()
 
    
@@ -218,6 +218,6 @@ with torch.no_grad():
     
     fig.suptitle('n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr),fontsize="x-large")
     plt.show()
-    plt.savefig('./output/GAN/Pendulum/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr)+'.png')     
+    #plt.savefig('./output/GAN/Pendulum/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim)+' lr '+str(lr)+'.png')     
                                                                                                                         
 # %%

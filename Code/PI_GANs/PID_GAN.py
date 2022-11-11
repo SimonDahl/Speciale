@@ -21,10 +21,10 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from scipy.integrate import odeint, solve_ivp
 
 
-n_data = 10
+n_data = 20
 bs = 1
-time_limit = 3
-n_col = 200
+time_limit = 5
+n_col = 2000
 
 
 
@@ -37,7 +37,7 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 300
+n_epochs = 1000
 
 gen_epoch = 5
 lambda_phy = 1
@@ -55,8 +55,9 @@ m = 1
 k = 1
 
 for i in range(n_data):
-    y_b[i] = np.random.uniform(1,3)
-
+    y_b[i] = np.random.uniform(3,5)
+    #y_b[i] = 3
+    
 x_col = np.linspace(0, time_limit, n_col)
 
 x_b = np.zeros([n_data])
@@ -143,13 +144,17 @@ Q_optimizer = optim.Adam(Q.parameters(), lr=lr)
 
 # Physics-Informed residual on the collocation points         
 def compute_residuals(x,u):
+    
+   
     #z = Variable(torch.randn(z_dim).to(device))
                
     u_t  = torch.autograd.grad(u, x, torch.ones_like(u), retain_graph=True,create_graph=True)[0]# computes dy/dx
     u_tt = torch.autograd.grad(u_t,  x, torch.ones_like(u_t),retain_graph=True ,create_graph=True)[0]# computes d^2y/dx^2
        
-    r_ode = u_tt + m*u_t + k*u# computes the residual of the 1D harmonic oscillator differential equation
-       
+    #r_ode = u_tt + m*u_t + k*u# computes the residual of the 1D harmonic oscillator differential equation
+    #r_ode = m*u_tt + k*u
+     
+    r_ode = k*u-u_t   
     return r_ode
 
 
@@ -231,8 +236,7 @@ def G_train(x,y_train):
         
         adv_loss = generator_loss(fake_logits_u,fake_logits_col)
         
-        G_loss = adv_loss + lambda_q* mse_loss_z 
-
+        G_loss = adv_loss + lambda_q* mse_loss_z +mse_loss/n_data
 
         G_loss.backward(retain_graph=True)
         G_optimizer.step()
