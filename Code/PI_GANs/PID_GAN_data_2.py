@@ -64,10 +64,10 @@ def sho(t,y):
     return solution
 
 
-y_train = np.zeros((5,n_data))
+y_train = np.zeros((1,n_data))
 
 
-for i in range(5):
+for i in range(1):
     y_init = [np.random.uniform(1,5),1]
     solution = solve_ivp(sho, [0,timesteps], y0 = y_init, t_eval = t)
     sol_data = solution.y[0]
