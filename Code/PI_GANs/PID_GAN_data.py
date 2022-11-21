@@ -37,7 +37,7 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 1000
+n_epochs = 1
 
 gen_epoch = 5
 lambda_phy = 1
@@ -184,6 +184,8 @@ def D_train(x,y_train):
     real_prob = torch.ones_like(x)
       
     # real y value for Discriminator  
+   
+    print(x.shape)
    
     d_input = torch.cat((x,y_train,real_prob),dim=1)
     real_logits = D(d_input)

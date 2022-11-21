@@ -14,6 +14,7 @@ from torchvision.utils import save_image
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import time 
 import argparse
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 # Device configuration
@@ -21,10 +22,10 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from scipy.integrate import odeint, solve_ivp
 
 
-n_data = 5
+n_data = 9
 bs = 1
 time_limit = 6
-n_col = 2000
+n_col = 2500
 
 
 
@@ -37,11 +38,11 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 3000
+n_epochs = 300
 
 gen_epoch = 5
 lambda_phy = 1
-lambda_q = 0.5
+lambda_q = 0.4
 lambda_val = 0.05
 #y_data = -k*np.cos()+k
 timesteps = 200
@@ -51,14 +52,14 @@ t = np.linspace(0,time_limit,timesteps)
 
 #y_b = np.zeros((n_data,1))
 #y = [2,1]
-m = 1
+m = 2
 k = 5
-
+c = 1
 #for i in range(n_data):
  #   y_b[i] = 3
     
 def sho(t,y):
-    solution = (y[1],(-m*y[1]-k*y[0]))
+    solution = (y[1],(-(c/m)*y[1]-(k/m)*y[0]))
     return solution
     
 
@@ -68,12 +69,12 @@ sol_data = solution.y[0]
     
 sol_plot = np.array([sol_data])  
 
-y_b = [sol_data[0],sol_data[5],sol_data[49],sol_data[70],sol_data[105]]
+y_b = [sol_data[0],sol_data[5],sol_data[40],sol_data[49],sol_data[70],sol_data[95],sol_data[105],sol_data[140],sol_data[150]]
   
 y_b = np.array([y_b])
   
   
-x_b = [t[0],t[5],t[49],t[70],t[105]]
+x_b = [t[0],t[5],t[40],t[49],t[70],t[95],t[105],t[140],t[150]]
 x_b = np.array([x_b])
 
 
@@ -100,7 +101,7 @@ x_col = x_col.reshape(n_col,1)
 x_col = Variable(torch.from_numpy(x_col).float(), requires_grad=True).to(device)
 
 
-
+start = time.time() 
 
 
 class Generator(nn.Module):
@@ -174,7 +175,9 @@ def compute_residuals(x,u):
     #m = np.random.uniform(1,5)
    #k = np.random.uniform(1,5)
        
-    r_ode = u_tt + m*u_t + k*u# computes the residual of the 1D harmonic oscillator differential equation
+    
+    r_ode = m*u_tt+c*u_t + k*u
+    #r_ode = u_tt + m*u_t + k*u# computes the residual of the 1D harmonic oscillator differential equation
     
     #r_ode = m*u_tt + k*u
     
@@ -312,6 +315,11 @@ t_plot = t_test.cpu().detach().numpy()
 plt.plot(t_plot,res_plot)
 plt.show()
  """
+ 
+end = time.time() 
+print("Time elapsed during the calculation:", end - start) 
+
+
 with torch.no_grad():
     
     
@@ -319,9 +327,10 @@ with torch.no_grad():
         z = Variable(torch.randn(X_star_norm.shape).to(device))
         generated = G(torch.cat((X_star_norm,z),dim=1))
         y = generated.cpu().detach().numpy()
-        plt.plot(t,y)
-    plt.plot(t,sol_data)
-    plt.scatter(x_b,y_b,color='red')
+        plt.plot(t,y,'--',label='Generated solution')
+    plt.plot(t,sol_data,label='Real solution')
+    plt.scatter(x_b,y_b,color='red',label='Training points')
+    plt.legend()
     plt.show()
 
     
