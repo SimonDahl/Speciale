@@ -23,9 +23,10 @@ from scipy.integrate import odeint, solve_ivp
 
 
 n_data = 22
+n_sols = 10
 bs = 1
 time_limit = 5
-n_col = 2000
+n_col = 100
 
 
 
@@ -39,6 +40,9 @@ y_dim = 1
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
 n_epochs = 1000
+
+
+SoftAdapt_start = 20
 
 gen_epoch = 5
 lambda_phy = 1
@@ -57,17 +61,18 @@ t = np.linspace(0,time_limit,timesteps)
 idx = [0,3,4,6,15,21,44,50,58,59,82,89,95,101,111,127,138,150,175,180,189,198]
 
 
-m = 1
+m = 2
+c = 2
 k = 5
 def sho(t,y):
-    solution = (y[1],(-m*y[1]-k*y[0]))
+    solution = (y[1],(-(c/m)*y[1]-(k/m)*y[0]))
     return solution
 
 
-y_train = np.zeros((1,n_data))
+y_train = np.zeros((n_sols,n_data))
 
 
-for i in range(1):
+for i in range(n_sols):
     y_init = [np.random.uniform(1,5),1]
     solution = solve_ivp(sho, [0,timesteps], y0 = y_init, t_eval = t)
     sol_data = solution.y[0]
@@ -94,7 +99,7 @@ t_sample = t.reshape(timesteps,1)
 
 x_b = Variable(torch.from_numpy(x_b).float(), requires_grad=True).to(device)
 y_b = Variable(torch.from_numpy(y_train).float(), requires_grad=True).to(device)
-y_b = y_b.reshape(n_data,5)
+y_b = y_b.reshape(n_data,n_sols)
 x_b = x_b.reshape(n_data,1)
 
 
@@ -162,6 +167,34 @@ D_optimizer = optim.Adam(D.parameters(), lr=lr)
 Q_optimizer = optim.Adam(Q.parameters(), lr=lr)
 
 
+
+
+def SoftAdapt(adv_losses, mse_loss_zs):#, #mse_losses):
+    eps = 10e-8
+    n = 10
+    s_adv = np.zeros(n-1)
+    s_z = np.zeros(n-1)
+    s_mse = np.zeros(n-1)
+    
+    
+    adv = adv_losses[-n:]
+    mse_z = mse_loss_zs[-n:]
+ #   mse = mse_losses[-n:]
+  
+    for i in range(1,(n-1)):
+        s_adv[i] = adv[i] - adv[i-1] 
+        s_z[i] = mse_z[i] - mse_z[i-1] 
+  #      s_mse[i] = mse[i] - mse[i-1] 
+            
+    Beta = 0.1
+    
+    a_adv = (np.exp(Beta*(s_adv[-1]-np.max(s_adv))))/(np.exp(Beta*(s_adv[-1]-np.max(s_adv)))+np.exp(Beta*(s_z[-1]-np.max(s_z))))#+np.exp(Beta*(s_mse[-1]-np.max(s_mse)))+eps)
+    a_z = (np.exp(Beta*(s_z[-1]-np.max(s_z))))/(np.exp(Beta*(s_adv[-1]-np.max(s_adv)))+np.exp(Beta*(s_z[-1]-np.max(s_z))))#+np.exp(Beta*(s_mse[-1]-np.max(s_mse)))+eps)
+    a_mse = (np.exp(Beta*(s_z[-1]-np.max(s_z))))/(np.exp(Beta*(s_adv[-1]-np.max(s_adv)))+np.exp(Beta*(s_z[-1]-np.max(s_z))))#+np.exp(Beta*(s_mse[-1]-np.max(s_mse)))+eps)
+    
+    return a_adv,a_z#,a_mse
+
+
 # Physics-Informed residual on the collocation points         
 def compute_residuals(x,u):
     
@@ -171,7 +204,7 @@ def compute_residuals(x,u):
     u_t  = torch.autograd.grad(u, x, torch.ones_like(u), retain_graph=True,create_graph=True)[0]# computes dy/dx
     u_tt = torch.autograd.grad(u_t,  x, torch.ones_like(u_t),retain_graph=True ,create_graph=True)[0]# computes d^2y/dx^2
        
-    r_ode = u_tt + m*u_t + k*u# computes the residual of the 1D harmonic oscillator differential equation
+    r_ode = m*u_tt+c*u_t + k*u# computes the residual of the 1D harmonic oscillator differential equation
     #r_ode = m*u_tt + k*u
      
     #r_ode = k*u-u_t   
@@ -232,8 +265,14 @@ def D_train(x,y_train):
     D_optimizer.step()
     return D_loss.data.item()
 
+adv_losses = []
+mse_losses = []
+mse_loss_zs = []
 
-def G_train(x,y_train):
+
+def G_train(x,y_train,epoch):
+    
+  
 
     for g_epoch in range(gen_epoch):
         
@@ -258,7 +297,22 @@ def G_train(x,y_train):
         
         adv_loss = generator_loss(fake_logits_u,fake_logits_col)
         
-        G_loss = adv_loss + lambda_q* mse_loss_z +mse_loss/n_data
+        if epoch > (SoftAdapt_start - 10):
+            mse_losses.append(mse_loss/n_data)
+            adv_losses.append(adv_loss)
+            mse_loss_zs.append(mse_loss_z)
+       
+        
+        G_loss = adv_loss + lambda_q* mse_loss_z #+mse_loss/n_data
+
+        if epoch > SoftAdapt_start:
+            a_adv,a_z = SoftAdapt(adv_losses, mse_loss_zs)#, mse_losses)
+            
+            G_loss = a_adv*adv_loss + a_z * mse_loss_z #+ a_mse* mse_loss
+            
+            del mse_losses[0]
+            del adv_losses[0]
+            del mse_loss_zs[0]
 
         G_loss.backward(retain_graph=True)
         G_optimizer.step()
@@ -285,7 +339,7 @@ def Q_train(x):
 for epoch in range(1, n_epochs+1):
     D_losses, G_losses,Q_losses = [], [],[]
 
-    for batch in range(5):
+    for batch in range(n_sols):
         y_batch = y_b[:,batch]
         #print(y_batch.shape)
         #print(x_b.shape)
@@ -294,7 +348,7 @@ for epoch in range(1, n_epochs+1):
         
         
         D_losses.append(D_train(x_b,y_batch))
-        G_losses.append(G_train(x_b,y_batch))
+        G_losses.append(G_train(x_b,y_batch,epoch))
         Q_losses.append(Q_train(x_b))
 
     print('[%d/%d]: loss_d: %.3f, loss_g: %.3f' % (
@@ -305,12 +359,12 @@ for epoch in range(1, n_epochs+1):
 with torch.no_grad():
     
     
-    for i in range(2):
+    for i in range(4):
         z = Variable(torch.randn(X_star_norm.shape).to(device))
         generated = G(torch.cat((X_star_norm,z),dim=1))
         y = generated.cpu().detach().numpy()
         plt.plot(t,y)
-    
+        plt.title('Generated solutions')
     #plt.plot(t,y_real)
     plt.show()
 

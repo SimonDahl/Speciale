@@ -22,7 +22,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from scipy.integrate import odeint, solve_ivp
 
 
-n_data = 9
+
 bs = 1
 time_limit = 6
 n_col = 2500
@@ -38,7 +38,7 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 300
+n_epochs = 4000
 
 gen_epoch = 5
 lambda_phy = 1
@@ -69,13 +69,18 @@ sol_data = solution.y[0]
     
 sol_plot = np.array([sol_data])  
 
-y_b = [sol_data[0],sol_data[5],sol_data[40],sol_data[49],sol_data[70],sol_data[95],sol_data[105],sol_data[140],sol_data[150]]
+y_b = [sol_data[0],sol_data[5],sol_data[95],sol_data[150]]
   
 y_b = np.array([y_b])
   
   
-x_b = [t[0],t[5],t[40],t[49],t[70],t[95],t[105],t[140],t[150]]
+  
+  
+x_b = [t[0],t[5],t[95],t[150]]
+n_data = len(x_b)
+
 x_b = np.array([x_b])
+
 
 
 x_col = np.linspace(0, time_limit, n_col)
@@ -323,14 +328,14 @@ print("Time elapsed during the calculation:", end - start)
 with torch.no_grad():
     
     
-    for i in range(1):
+    for i in range(3):
         z = Variable(torch.randn(X_star_norm.shape).to(device))
         generated = G(torch.cat((X_star_norm,z),dim=1))
         y = generated.cpu().detach().numpy()
-        plt.plot(t,y,'--',label='Generated solution')
+        plt.plot(t,y,'--',label='Generated solution '+str(i+1))
     plt.plot(t,sol_data,label='Real solution')
     plt.scatter(x_b,y_b,color='red',label='Training points')
-    plt.legend()
+    plt.legend(loc = 'upper right')
     plt.show()
 
     
