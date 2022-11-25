@@ -44,7 +44,7 @@ n_epochs = 1000
 
 SoftAdapt_start = 20
 
-gen_epoch = 5
+gen_epoch = 1
 lambda_phy = 1
 lambda_q = 0.5
 lambda_val = 0.05
