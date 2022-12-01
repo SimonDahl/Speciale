@@ -30,7 +30,7 @@ args = parser.parse_args()
 #%% Hyperparameters
 
 bs = 1
-n_data = 1
+n_data = 1000
 timesteps = 500
 slope = 0.01
 drop = 0.2
@@ -40,7 +40,7 @@ np.random.seed(2022)
 #n_epochs = args.n_epochs
 #z_dim = args.z_dim
 lr = 0.001
-n_epochs = 100
+n_epochs = 4
 z_dim = 100
 
 
@@ -57,11 +57,11 @@ t = np.linspace(0, 10, timesteps)
 x = np.zeros((n_data,timesteps))
 
 for i in range(n_data):
-    #x0 = [np.random.uniform(0,np.pi),np.random.uniform(0,1)]
-    #m = np.random.uniform(0.1,2)
-    #k = np.random.uniform(3,10)
-    m = 1
-    k = 1
+    x0 = [np.random.uniform(0,np.pi),np.random.uniform(0,1)]
+    m = np.random.uniform(0.1,2)
+    k = np.random.uniform(3,10)
+    #m = 1
+    #k = 1
     x0 = [1,0]    
     sol = odeint(pend, x0, t, args=(m, k))
     x[i,:] = sol[:,0]

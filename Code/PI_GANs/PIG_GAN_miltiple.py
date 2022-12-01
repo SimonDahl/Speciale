@@ -22,7 +22,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from scipy.integrate import odeint, solve_ivp
 
 
-n_data = 30
+n_data = 200
 n_sols = 30
 bs = 10
 time_limit = 6
@@ -39,7 +39,7 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 1000
+n_epochs = 100
 
 gen_epoch = 5
 lambda_phy = 1
@@ -55,8 +55,9 @@ t = np.linspace(0,time_limit,timesteps)
 #y = [2,1]
 
 
-idx = [0,2,3,4,5,6,12,15,21,44,50,55,82,88,89,95,98,101,111,120,127,138,148,150,154,160,175,180,189,198] # index for data points in solution data
+#idx = [0,2,3,4,5,6,12,15,21,44,50,55,82,88,89,95,98,101,111,120,127,138,148,150,154,160,175,180,189,198] # index for data points in solution data
 
+idx = list(range(0,200))
 
 m = 2
 k = 5
@@ -77,7 +78,7 @@ x_b = list(t[i] for i in idx)
 x_b = np.array(x_b)
 
 for i in range(n_sols):
-    y_init = [np.random.uniform(1,5),np.random.uniform(-2,2)]
+    y_init = [np.random.uniform(1,10),np.random.uniform(-2,2)]
     solution = solve_ivp(sho, [0,timesteps], y0 = y_init, t_eval = t)
     sol_data = solution.y[0]
     sol_data = list(sol_data[i] for i in idx)
@@ -85,8 +86,8 @@ for i in range(n_sols):
     y_train[i,:] = sol_data
     x_train[i,:] = x_b
 
-print(x_train)
-  
+plt.plot(t,y_train[5,:])
+plt.show()  
 x_col = np.linspace(0, time_limit, n_col)
 
 

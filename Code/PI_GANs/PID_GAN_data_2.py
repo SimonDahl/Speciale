@@ -22,8 +22,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from scipy.integrate import odeint, solve_ivp
 
 
-n_data = 22
-n_sols = 10
+n_sols = 30
 bs = 1
 time_limit = 5
 n_col = 100
@@ -31,7 +30,7 @@ n_col = 100
 
 
 #y_data = np.cos(x_data*np.sqrt(k)) # Exact solution for (0,1) boundary condition
-n_neurons = 50
+n_neurons = 75
 lr = 0.001
 drop = 0.0
 z_dim = 1
@@ -39,12 +38,12 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 1000
+n_epochs = 3000
 
 
-SoftAdapt_start = 20
+SoftAdapt_start = 300
 
-gen_epoch = 1
+gen_epoch = 5
 lambda_phy = 1
 lambda_q = 0.5
 lambda_val = 0.05
@@ -58,8 +57,10 @@ t = np.linspace(0,time_limit,timesteps)
 #y = [2,1]
 
 
-idx = [0,3,4,6,15,21,44,50,58,59,82,89,95,101,111,127,138,150,175,180,189,198]
+#idx = [0,3,4,6,15,21,44,50,58,59,82,89,95,101,111,127,138,150,175,180,189,198]
+idx = list(range(0,200))
 
+n_data = len(idx)
 
 m = 2
 c = 2
@@ -158,7 +159,7 @@ class Q_net(nn.Module):
 # build network
 G = Generator(g_input_dim = z_dim+x_dim, g_output_dim = 1).to(device)
 D = Discriminator(x_dim+y_dim+1).to(device)
-Q = Q_net(x_dim+y_dim,1)
+Q = Q_net(x_dim+y_dim,1).to(device)
 
 
 # set optimizer 
@@ -166,6 +167,40 @@ G_optimizer = optim.Adam(G.parameters(), lr=lr)
 D_optimizer = optim.Adam(D.parameters(), lr=lr)
 Q_optimizer = optim.Adam(Q.parameters(), lr=lr)
 
+
+def SoftAdapt_D(loss1,loss2,loss3,loss4):#, #mse_losses):
+    eps = 10e-8
+    n = 10
+    s1 = np.zeros(n-1)
+    s2 = np.zeros(n-1)
+    s3 = np.zeros(n-1)
+    s4 = np.zeros(n-1)
+    
+    l1 =  loss1[-n:]
+    l2 =  loss2[-n:]
+    l3 =  loss3[-n:]
+    l4 =  loss4[-n:] 
+  
+  
+    for i in range(1,(n-1)):
+        s1[i] = l1[i] - l1[i-1]
+        s2[i] = l2[i] - l2[i-1]
+        s3[i] = l3[i] - l3[i-1]
+        s4[i] = l4[i] - l4[i-1] 
+        
+   
+            
+    Beta = 0.1
+    
+    denominator = (np.exp(Beta*(s1[-1]-np.max(s1)))+np.exp(Beta*(s2[-1]-np.max(s2)))+np.exp(Beta*(s3[-1]-np.max(s3)))+np.exp(Beta*(s4[-1]-np.max(s4)))+eps)
+    
+    a1 =  (np.exp(Beta*(s1[-1]-np.max(s1))))/denominator
+    a2 =  (np.exp(Beta*(s2[-1]-np.max(s2))))/denominator
+    a3 =  (np.exp(Beta*(s3[-1]-np.max(s3))))/denominator
+    a4 =  (np.exp(Beta*(s4[-1]-np.max(s4))))/denominator
+ 
+    
+    return a1,a2,a3,a4
 
 
 
@@ -220,15 +255,39 @@ def n_phy_prob(x):
         
     return u,noise,n_phy,res
 
-def discriminator_loss(logits_real_u, logits_fake_u, logits_fake_f, logits_real_f):
+
+
+
+def discriminator_loss_soft(logits_real_u, logits_fake_u, logits_fake_f, logits_real_f,a1,a2,a3,a4):
+        loss =  - a1*torch.mean(torch.log(1.0 - torch.sigmoid(logits_real_u) + 1e-8) + a2* torch.log(torch.sigmoid(logits_fake_u) + 1e-8)) \
+                - a3 * torch.mean(torch.log(1.0 - torch.sigmoid(logits_real_f) + 1e-8) + a4* torch.log(torch.sigmoid(logits_fake_f) + 1e-8))
+        return loss
+
+
+""" def discriminator_loss(logits_real_u, logits_fake_u, logits_fake_f, logits_real_f):
         loss =  - torch.mean(torch.log(1.0 - torch.sigmoid(logits_real_u) + 1e-8) + torch.log(torch.sigmoid(logits_fake_u) + 1e-8)) \
                 - torch.mean(torch.log(1.0 - torch.sigmoid(logits_real_f) + 1e-8) + torch.log(torch.sigmoid(logits_fake_f) + 1e-8))
         return loss
+     """
+    
+def discriminator_loss(logits_real_u, logits_fake_u, logits_fake_f, logits_real_f):
+    l1 = (torch.log(1.0 - torch.sigmoid(logits_real_u) + 1e-8))
+    l2 = torch.log(torch.sigmoid(logits_fake_u) + 1e-8)
+    l3 = (torch.log(1.0 - torch.sigmoid(logits_real_f) + 1e-8))
+    l4 = torch.log(torch.sigmoid(logits_fake_f) + 1e-8)
+    loss = torch.mean(-l1+l2)-torch.mean(l3+l4) 
+    return loss,torch.mean(l1),torch.mean(l2),torch.mean(l3),torch.mean(l4)
+
 
 def generator_loss(logits_fake_u, logits_fake_f):
     gen_loss = torch.mean(logits_fake_u) + torch.mean(logits_fake_f)
     return gen_loss
     
+l1s = []
+l2s = []
+l3s = []
+l4s = []
+
     
 def D_train(x,y_train):
     
@@ -260,7 +319,25 @@ def D_train(x,y_train):
     real_prob_col = torch.ones_like(x_col)
     real_logits_col = D(torch.cat((x_col,u_col,real_prob_col),dim=1))
     
-    D_loss = discriminator_loss(real_logits,fake_logits_u,fake_logits_col,real_logits_col)
+    D_loss,l1,l2,l3,l4 = discriminator_loss(real_logits,fake_logits_u,fake_logits_col,real_logits_col)
+    
+    
+    if epoch > (SoftAdapt_start - 10):
+        l1s.append(l1)
+        l2s.append(l2)
+        l3s.append(l3)
+        l4s.append(l4)
+    
+    if epoch > SoftAdapt_start:
+        a1,a2,a3,a4 = SoftAdapt_D(l1s,l2s,l3s,l4s)
+        D_loss = discriminator_loss_soft(real_logits,fake_logits_u,fake_logits_col,real_logits_col,a1,a2,a3,a4)
+        
+        del l1s[0]
+        del l2s[0]
+        del l3s[0]
+        del l4s[0]
+
+    
     D_loss.backward(retain_graph=True)
     D_optimizer.step()
     return D_loss.data.item()
@@ -365,6 +442,7 @@ with torch.no_grad():
         y = generated.cpu().detach().numpy()
         plt.plot(t,y)
         plt.title('Generated solutions')
+    plt.savefig('./output/GAN/Pendulum/'+'PID_GAN_Soft'+'.png')   
     #plt.plot(t,y_real)
-    plt.show()
+    #plt.show()
 

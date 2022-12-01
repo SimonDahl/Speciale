@@ -26,7 +26,7 @@ lr = 0.001 # learing rate
 lr2 = 0.0001 # learning rate 2 is switch is used
 lr_switch = 200000 # n_epochs before changing lr 
 criterion = nn.MSELoss() # loss function 
-n_epochs = 2000
+n_epochs = 10000
 n_col = 3000 # number of collocation points 
 SoftAdapt_beta = 0.1 # soft adabt hyberparamter 
 
@@ -41,14 +41,14 @@ timesteps = 200 # number of timestpes for solver
 time_limit = 6 # solver time limit 
 
 # pendumlum paramters 
-m = 2
-k = 5
+m_true = 2
+k_true = 5
 c = 1
 
 t = np.linspace(0,time_limit,timesteps)
     
 def sho(t,y):
-    solution = (y[1],(-(c/m)*y[1]-(k/m)*y[0])) # damped harmonic oscillator 
+    solution = (y[1],(-(c/m_true)*y[1]-(k_true/m_true)*y[0])) # damped harmonic oscillator 
     return solution
     
 y_init = [3,0] # initial condition
@@ -58,14 +58,14 @@ sol_data = solution.y[0]
 sol_plot = np.array([sol_data])  
 
 
-u_b = [sol_data[0],sol_data[70],sol_data[180]]
+u_b = [sol_data[0],sol_data[20],sol_data[40],sol_data[55],sol_data[70],sol_data[100],sol_data[110],sol_data[140],sol_data[180]]
 
 n_b = len(u_b)
   
 u_b = np.array([u_b])
   
   
-t_b = [t[0],t[70],t[180]]
+t_b = [t[0],t[20],t[40],t[55],t[70],t[100],t[110],t[140],t[180]]
 t_b = np.array([t_b])
 
 
@@ -92,7 +92,10 @@ class PINN(nn.Module):
         self.fc3 = nn.Linear(n_neurons,n_neurons)
         self.fc4 = nn.Linear(n_neurons,n_neurons)
         self.fc5 = nn.Linear(n_neurons,1)
-        
+    
+        #self.m = torch.nn.parameter.Parameter(torch.from_numpy(np.array([1])).float())
+        self.m = torch.nn.parameter.Parameter(torch.from_numpy(np.array([1])).float(), requires_grad=True)
+        self.k = torch.nn.parameter.Parameter(torch.from_numpy(np.array([1])).float(), requires_grad=True)
        
     # forward method
     def forward(self,y):
@@ -102,6 +105,10 @@ class PINN(nn.Module):
         y = torch.tanh(self.fc4(y)) 
       
         return self.fc5(y) 
+    
+    def getODEParam(self):
+        
+        return (self.m,self.k)
   
  
 net = PINN().to(device)
@@ -110,6 +117,8 @@ optimizer = optim.Adam(net.parameters(), lr=lr)
 
 
 def compute_residuals(x):
+    
+    m,k = net.getODEParam()
     
     u = net(x) # calculate u
  
@@ -180,10 +189,17 @@ def train(x_col,u_b,epoch):
     
     optimizer.step()
     
-    return loss.data.item()
+    m_approx,k_approx = net.getODEParam()
+    k_approx = k_approx.detach().numpy()
+    m_approx = m_approx.detach().numpy()
+    
+    return loss,m_approx,k_approx
 
 losses = []
-
+m_approx = np.zeros(n_epochs)
+k_approx = np.zeros(n_epochs)
+m_true_list = np.repeat(m_true,n_epochs)
+k_true_list = np.repeat(k_true,n_epochs)
 
 for epoch in range(1, n_epochs+1):
     
@@ -192,14 +208,18 @@ for epoch in range(1, n_epochs+1):
     if epoch > lr_switch: # learning rate switz if desired 
         optimizer = optim.Adam(net.parameters(), lr=lr2)
     
-    losses.append(train(x_col,u_b,epoch))
-
+    loss,m,k = train(x_col,u_b,epoch)
+    
+    losses.append(loss)
+    m_approx[epoch-1] = m
+    k_approx[epoch-1] = k
     print('[%d/%d]: loss: %.4f' % ((epoch), n_epochs, torch.mean(torch.FloatTensor(losses))))
     
 
 stop = time.time()
 
-print('Time ussage',stop-start)
+#print('Time ussage',stop-start)
+
 
 with torch.no_grad():
     
@@ -208,12 +228,24 @@ with torch.no_grad():
     plt.plot(t,sol_data,label='Real solution')
     plt.scatter(t_b,u_b,color='red',label='Data points')
     plt.plot(t,y,'--',label='PINN solution')
-    plt.title('Damped Harmonic Oscillator')
+    plt.title('Damped Harmonic Oscillator unkown m,k')
     plt.legend()
     plt.show()
+     
+e_plot = list(range(n_epochs))
+with torch.no_grad():
 
-""" e_plot = list(range(n_epochs))
-
+    plt.plot(e_plot,m_true_list,label='M True',color='red')
+    plt.plot(e_plot,m_approx,'--',label='M approx',color='red')
+    plt.plot(e_plot,k_true_list,label='K True',color='blue')
+    plt.plot(e_plot,k_approx,'--',label='K approx',color='blue')
+    plt.legend()
+    plt.title('Data driven discovery of parameters m and k')
+    plt.show()
+ 
+ 
+ 
+"""
 plt.plot(e_plot,losses)
 plt.yscale('log')
 plt.title('Loss vs epoch (y log scale)')
