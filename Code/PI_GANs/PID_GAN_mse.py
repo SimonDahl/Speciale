@@ -39,7 +39,7 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 1000
+n_epochs = 100
 
 gen_epoch = 5
 lambda_phy = 1
@@ -85,7 +85,7 @@ for i in range(n_sols):
     y_train[i,:] = sol_data
     x_train[i,:] = x_b
 
-print(x_train)
+
   
 x_col = np.linspace(0, time_limit, n_col)
 
@@ -169,9 +169,9 @@ Q = Q_net(x_dim+y_dim,1)
 
 
 # set optimizer 
-G_optimizer = optim.Adam(G.parameters(), lr=lr)
-D_optimizer = optim.Adam(D.parameters(), lr=lr)
-Q_optimizer = optim.Adam(Q.parameters(), lr=lr)
+G_optimizer = optim.RMSprop(G.parameters(), lr=lr)
+D_optimizer = optim.RMSprop(D.parameters(), lr=lr)
+Q_optimizer = optim.RMSprop(Q.parameters(), lr=lr)
 
 
 # Physics-Informed residual on the collocation points         
@@ -275,7 +275,7 @@ def G_train(x,y_train):
         G_loss.backward(retain_graph=True)
         G_optimizer.step()
 
-    return G_loss
+        return G_loss
 
 
 def Q_train(x):

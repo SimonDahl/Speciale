@@ -38,7 +38,7 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 3000
+n_epochs = 400
 
 
 SoftAdapt_start = 300
@@ -394,7 +394,7 @@ def G_train(x,y_train,epoch):
         G_loss.backward(retain_graph=True)
         G_optimizer.step()
 
-    return G_loss
+        return G_loss
 
 
 def Q_train(x):
@@ -436,13 +436,13 @@ for epoch in range(1, n_epochs+1):
 with torch.no_grad():
     
     
-    for i in range(4):
+    for i in range(3):
         z = Variable(torch.randn(X_star_norm.shape).to(device))
         generated = G(torch.cat((X_star_norm,z),dim=1))
         y = generated.cpu().detach().numpy()
         plt.plot(t,y)
         plt.title('Generated solutions')
-    plt.savefig('./output/GAN/Pendulum/'+'PID_GAN_Soft'+'.png')   
+    #plt.savefig('./output/GAN/Pendulum/'+'PID_GAN_Soft'+'.png')   
     #plt.plot(t,y_real)
-    #plt.show()
+    plt.show()
 

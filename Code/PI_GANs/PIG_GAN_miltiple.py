@@ -22,7 +22,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from scipy.integrate import odeint, solve_ivp
 
 
-n_data = 200
+n_data =100
 n_sols = 30
 bs = 10
 time_limit = 6
@@ -46,7 +46,7 @@ lambda_phy = 1
 lambda_q = 0.05
 lambda_val = 0.05
 #y_data = -k*np.cos()+k
-timesteps = 200
+timesteps = 100
 
 
 t = np.linspace(0,time_limit,timesteps)
@@ -57,13 +57,14 @@ t = np.linspace(0,time_limit,timesteps)
 
 #idx = [0,2,3,4,5,6,12,15,21,44,50,55,82,88,89,95,98,101,111,120,127,138,148,150,154,160,175,180,189,198] # index for data points in solution data
 
-idx = list(range(0,200))
+idx = list(range(0,100))
 
 m = 2
 k = 5
 c = 1
     
 def sho(t,y):
+    m = np.random.uniform(1,5)
     solution = (y[1],(-(c/m)*y[1]-(k/m)*y[0]))
     return solution
     
@@ -304,7 +305,7 @@ def G_train(x,y_train):
         G_loss.backward(retain_graph=True)
         G_optimizer.step()
 
-    return G_loss
+        return G_loss
 
 
 def Q_train(x):

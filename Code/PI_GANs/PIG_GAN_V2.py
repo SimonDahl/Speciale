@@ -45,7 +45,7 @@ lambda_phy = 1
 lambda_q = 0.4
 lambda_val = 0.05
 #y_data = -k*np.cos()+k
-timesteps = 200
+timesteps = 100
 
 
 t = np.linspace(0,time_limit,timesteps)
@@ -69,14 +69,14 @@ sol_data = solution.y[0]
     
 sol_plot = np.array([sol_data])  
 
-y_b = [sol_data[0],sol_data[5],sol_data[95],sol_data[150]]
+y_b = [sol_data[0],sol_data[5],sol_data[65],sol_data[98]]
   
 y_b = np.array([y_b])
   
   
   
   
-x_b = [t[0],t[5],t[95],t[150]]
+x_b = [t[0],t[5],t[65],t[98]]
 n_data = len(x_b)
 
 x_b = np.array([x_b])
@@ -267,7 +267,7 @@ def G_train(x,y_train):
         G_loss.backward(retain_graph=True)
         G_optimizer.step()
 
-    return G_loss
+        return G_loss
 
 
 def Q_train(x):

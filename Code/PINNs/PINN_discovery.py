@@ -26,7 +26,7 @@ lr = 0.001 # learing rate
 lr2 = 0.0001 # learning rate 2 is switch is used
 lr_switch = 200000 # n_epochs before changing lr 
 criterion = nn.MSELoss() # loss function 
-n_epochs = 10000
+n_epochs = 2000
 n_col = 3000 # number of collocation points 
 SoftAdapt_beta = 0.1 # soft adabt hyberparamter 
 
@@ -218,7 +218,7 @@ for epoch in range(1, n_epochs+1):
 
 stop = time.time()
 
-#print('Time ussage',stop-start)
+print('Time ussage',stop-start)
 
 
 with torch.no_grad():
@@ -245,7 +245,7 @@ with torch.no_grad():
  
  
  
-"""
+
 plt.plot(e_plot,losses)
 plt.yscale('log')
 plt.title('Loss vs epoch (y log scale)')
@@ -258,4 +258,4 @@ with torch.no_grad():
     plt.yscale('log')
     plt.legend()
     plt.title('MSE_f and MSE_u losses vs epoch (y log scale)')
-    plt.show() """
+    plt.show() 

@@ -29,8 +29,8 @@ args = parser.parse_args()
 
 #%% Hyperparameters
 
-bs = 1
-n_data = 1000
+bs = 5
+n_data = 10
 timesteps = 500
 slope = 0.01
 drop = 0.2
@@ -40,7 +40,7 @@ np.random.seed(2022)
 #n_epochs = args.n_epochs
 #z_dim = args.z_dim
 lr = 0.001
-n_epochs = 4
+n_epochs = 100
 z_dim = 100
 
 
@@ -130,6 +130,7 @@ class Discriminator(nn.Module):
     
 # build network
 G = Generator(g_input_dim = z_dim, g_output_dim = timesteps).to(device)
+print(G)
 D = Discriminator(timesteps).to(device)
 
 # set optimizer 
@@ -146,7 +147,11 @@ def G_train(x):
     z = Variable(torch.randn(bs, z_dim).to(device))
     y = Variable(torch.ones(bs, 1).to(device))
 
+    print(z.shape)
     G_output = G(z)
+    
+    print(G_output.shape)
+    print('Inside G')
     D_output = D(G_output)
     G_loss = criterion(D_output, y)
 
@@ -194,6 +199,7 @@ for epoch in range(1, n_epochs+1):
      
         D_losses.append(D_train(x))
         G_losses.append(G_train(x))
+        print(batch_idx)
 
     print('[%d/%d]: loss_d: %.3f, loss_g: %.3f' % (
             (epoch), n_epochs, torch.mean(torch.FloatTensor(D_losses)), torch.mean(torch.FloatTensor(G_losses))))
