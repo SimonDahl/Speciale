@@ -28,14 +28,25 @@ parser.add_argument('--w_gan_gp',help='Type of GAN',type=int)
 args = parser.parse_args()
 #%%
 
-#n_sols = 10
-n_sols = args.n_sols
+
+HPC = False
+
+if HPC:
+    n_sols = args.n_sols
+    n_epochs = args.n_epochs
+    w_gan_gp = args.w_gan_gp
+else:
+    n_sols = 200
+    n_epochs = 1
+    w_gan_gp = 1
+    
+
 bs = n_sols // 10
 n_neurons = 50
 lr = 0.001
 criterion = nn.BCELoss() 
-#n_epochs = 1
-n_epochs = args.n_epochs
+
+#
 z_dim = 100
 
 time_limit = 5
@@ -45,8 +56,8 @@ t = np.linspace(0,time_limit,timesteps)
 
 clip_value = 0.01
 lambda_GP = 1
-#w_gan_gp = 1 # 0 - GAN, 1 - W_GAN, 2 - W_GAN_GP
-w_gan_gp = args.w_gan_gp
+# # 0 - GAN, 1 - W_GAN, 2 - W_GAN_GP
+
 
 np.random.seed(12345)
 
@@ -60,12 +71,22 @@ def sho(t,y):
 
 train = np.zeros((n_sols,timesteps))
 
+
+print('### DATA GENERATION Started ###')
 for i in range(n_sols):
     y_init = [np.random.uniform(1,10),np.random.uniform(1,10)]
     solution = solve_ivp(sho, [0,timesteps], y0 = y_init, t_eval = t)
     sol_data = solution.y[0]
     train[i,:] = sol_data
 print('### DATA GENERATION COMPLETE ###')
+
+
+
+for i in range(n_sols):
+    plt.plot(t,train[i,:])
+plt.title('Range of solutions')
+plt.show()
+
 
 #%%
 t_plot = Variable(torch.from_numpy(t).float(), requires_grad=True).to(device)
@@ -75,7 +96,7 @@ train_set = torch.from_numpy(train)
 train_set = train_set.float()
 
 train_loader = torch.utils.data.DataLoader(dataset=train_set, batch_size=bs, shuffle=True)
-
+""" 
 #%%
 class Generator(nn.Module):
     def __init__(self, g_input_dim, g_output_dim):
@@ -226,4 +247,4 @@ with torch.no_grad():
             ax[i,j].set_title('Sample ' + str(c))
             c+= 1
     plt.savefig('./output/W_GAN/'+'Sub-plot W_GAN_GP '+str(w_gan_gp)+' n_epochs ' +str(n_epochs)+' n_sols '+str(n_sols)+'.png')
-    #plt.show()
+    #plt.show() """
