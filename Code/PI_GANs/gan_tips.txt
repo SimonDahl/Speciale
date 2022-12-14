@@ -1,0 +1,15 @@
+
+weigth clipping 
+
+spectral normalization 
+
+graditen panalty 
+
+kør critic flere gange end generator 
+
+ambient GAN
+
+1 D convulutions - ændre input tilføj ekstra dimention med 1 
+
+batch normlization en af dem ikke den anden WGAN training og evaluation 
+

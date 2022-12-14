@@ -1,4 +1,5 @@
-# er lavet helt som i artiklen, virker men generer samme løsning 
+# PID GAN SOM virker på en løsning 
+
 
 # prerequisites
 from ast import arg

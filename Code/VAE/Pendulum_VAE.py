@@ -36,20 +36,20 @@ z_dim_size = args.z_dim_size
 
 lr = args.lr   #3e-4
 #lr = 3e-4
-timesteps = 500
-n_data = 2000
+timesteps = 100
+n_data = 1000
 
-
+np.random.seed(12345)
 
 #%% Generate data 
 
-def pend(x, t, m, k):
+def pend(x, t, m, k,c):
     x1,x2 = x
-    dxdt = [x2, -m*x2 - k*np.sin(x1)]
+    dxdt = [x2, (-(c/m)*x2 - (k/m)*x1)]
     return dxdt
 
-
-t = np.linspace(0, 10, timesteps)
+#(y[1],(-(c/m)*y[1]-(k/m)*y[0]))
+t = np.linspace(0, 5, timesteps)
    
 x = np.zeros((n_data,timesteps))
 
@@ -57,13 +57,19 @@ for i in range(n_data):
     x0 = [np.random.uniform(0,np.pi),np.random.uniform(0,1)]
     m = np.random.uniform(0.1,2)
     k = np.random.uniform(3,10)
-    sol = odeint(pend, x0, t, args=(m, k))
+    c = 1
+    sol = odeint(pend, x0, t, args=(m, k,c))
     x[i,:] = sol[:,0]
 print('Data generation complete')
 
+for i in range(n_data):
+    plt.plot(t,x[i,:])
+plt.title('Range of solutions')
+plt.show()
+
 
 #%%
-
+""" 
 # split into test, validation, and training sets
 x_temp, x_test, _, _ = train_test_split(x, x, test_size=0.05)
 x_train, x_valid, _, _ = train_test_split(x_temp,
@@ -263,3 +269,4 @@ with torch.no_grad():
      
     #plt.show()
 
+ """

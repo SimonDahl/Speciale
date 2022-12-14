@@ -1,4 +1,4 @@
-# er lavet helt som i artiklen, har både boundary points og tager kun et punkt af gangen som input. ser ikke ud til at lære noget som helst 
+# VIrker men danner kun en ustøjet løsning 
 
 # prerequisites
 from ast import arg
@@ -41,7 +41,7 @@ criterion = nn.BCELoss()
 criterion_mse = nn.MSELoss()
 n_epochs = 100
 
-gen_epoch = 5
+gen_epoch = 3
 lambda_phy = 1
 lambda_q = 0.05
 lambda_val = 0.05
@@ -275,7 +275,7 @@ def G_train(x,y_train):
         G_loss.backward(retain_graph=True)
         G_optimizer.step()
 
-        return G_loss
+    return G_loss
 
 
 def Q_train(x):
@@ -333,7 +333,7 @@ plt.plot(t_plot,res_plot)
 plt.show()
  """
 
-""" with torch.no_grad():
+with torch.no_grad():
     
     
     for i in range(3):
@@ -342,12 +342,11 @@ plt.show()
         y = generated.cpu().detach().numpy()
         plt.plot(t,y)
     plt.show()
-         """
-    
+
     
     
 #%% Generate sample 
-
+""" 
 with torch.no_grad():
     
     fig, ax = plt.subplots(2,2)
@@ -363,3 +362,4 @@ with torch.no_grad():
 
     plt.show()
     #plt.savefig('./output/GAN/Pendulum/'+'PI_GAN_test'+'.png') 
+ """

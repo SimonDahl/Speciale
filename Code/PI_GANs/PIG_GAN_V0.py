@@ -290,7 +290,7 @@ for epoch in range(1, n_epochs+1):
 with torch.no_grad():
     
     
-    for i in range(3):
+    for i in range(5):
         z = Variable(torch.randn(timesteps).to(device))
         G_input = torch.cat((t_plot,z))
         generated = G(G_input)

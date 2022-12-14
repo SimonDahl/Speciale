@@ -293,14 +293,14 @@ def G_train(x,y_train):
         
             adv_loss = generator_loss(fake_logits_u,fake_logits_col)
         
-            G_loss[i] = adv_loss + lambda_q* mse_loss_z +mse_loss/n_data
+            G_loss[i] = adv_loss + lambda_q* mse_loss_z # +mse_loss/n_data
 
         
         G_loss = torch.mean(G_loss)
         G_loss.backward(retain_graph=True)
         G_optimizer.step()
 
-        return G_loss
+    return G_loss
 
 
 def Q_train(x):
