@@ -45,7 +45,7 @@ clip_value = 1
 lambda_GP = 1 
 optimizer_choice = 1 # RMSE prog 
 weight_clipping = 1 
-GP_on = 1
+GP_on = 0
 
 HPC = False 
 
@@ -67,7 +67,7 @@ criterion_mse = nn.MSELoss()
 
 
 
-lambda_phy = 0.8
+lambda_phy = 0.08
 lambda_q = 0.4
 lambda_val = 0.05
 
@@ -174,7 +174,7 @@ class Discriminator(nn.Module):
 
 # build network
 G = Generator(g_input_dim = z_dim+x_dim, g_output_dim = 1).to(device)
-D = Discriminator(x_dim+y_dim).to(device)
+D = Discriminator(x_dim+y_dim+1).to(device)
 
 
 
@@ -197,30 +197,35 @@ def compute_residuals(x,u):
    
     u_t  = torch.autograd.grad(u, x, torch.ones_like(u), retain_graph=True,create_graph=True)[0]# computes dy/dx
     u_tt = torch.autograd.grad(u_t,  x, torch.ones_like(u_t),retain_graph=True ,create_graph=True)[0]# computes d^2y/dx^2
-    
-   
+      
     r_ode = m*u_tt+c*u_t + k*u
           
     return r_ode
 
 
+
 def n_phy_prob(x):
-    noise = Variable(torch.rand(x.shape).to(device))
+    noise = Variable(torch.randn(x.shape).to(device))
     g_input = torch.cat((x,noise),dim=1)
     u = G(g_input)
     res = compute_residuals(x,u)
-           
-    return u,noise,res
+    n_phy = torch.exp(-lambda_val * (res**2))
+    return u,noise,res,n_phy
 
-def discriminator_loss(logits_real_u, logits_fake_u):
-        loss =   torch.mean(logits_real_u) - torch.mean(logits_fake_u)  
+
+
+def discriminator_loss(logits_real_u, logits_fake_u, logits_fake_f, logits_real_f):
+        loss =   torch.mean(logits_real_u) - torch.mean(logits_fake_u) \
+                + torch.mean(logits_real_f) - torch.mean(logits_fake_f) 
         return loss
 
-def generator_loss(logits_fake_u):
-        gen_loss = torch.mean(logits_fake_u)
-        return gen_loss
-    
 
+def generator_loss(logits_fake_u, logits_fake_f):
+    gen_loss = torch.mean(logits_fake_u) + torch.mean(logits_fake_f)
+    return gen_loss
+ 
+ 
+ 
 def compute_gradient_penalty(y_real, y_pred,x):
     alpha = Variable(torch.rand(1).to(device))
     interpolates = (alpha * y_real + ((1 - alpha) * y_pred)).requires_grad_(True)
@@ -261,18 +266,32 @@ def D_train(x,y_train):
                 
             
             # real y value for Discriminator  
-        
-            d_input = torch.cat((x_i,y_i),dim=1)
+            real_prob = torch.ones_like(x_i)
+             
+            d_input = torch.cat((x_i,y_i,real_prob),dim=1)
             real_logits = D(d_input)
             
-                
-            # physics loss for boundary point 
-            u,_,_ = n_phy_prob(x_i)
-        
-            fake_logits_u = D(torch.cat((x_i,u),dim=1))
             
-        
-            D_loss[i] = discriminator_loss(real_logits, fake_logits_u)
+              # physics loss for boundary point 
+            u,_,n_phy,_ = n_phy_prob(x_i)
+   
+            fake_logits_u = D(torch.cat((x_i,u,n_phy),dim=1))
+            
+                # physics loss for collocation points 
+    
+            u_col,_,n_phy_col,_ = n_phy_prob(x_col)
+            fake_logits_col = D(torch.cat((x_col,u_col,n_phy_col),dim=1))
+            
+            
+             # computing synthetic real logits on collocation points for discriminator loss
+
+            real_prob_col = torch.ones_like(x_col)
+            real_logits_col = D(torch.cat((x_col,u_col,real_prob_col),dim=1))
+    
+            D_loss[i] = discriminator_loss(real_logits,fake_logits_u,fake_logits_col,real_logits_col)
+     
+     
+           
             if GP_on == 1:
                 GP = compute_gradient_penalty(real_logits,fake_logits_u,x_i)
                 D_loss[i] = D_loss[i] - lambda_GP * GP
@@ -285,7 +304,6 @@ def D_train(x,y_train):
             for p in D.parameters():
                 p.data.clamp_(-clip_value,clip_value)
     return D_loss.data.item()
-
 
 #%% Generator training loop 
 
@@ -308,20 +326,21 @@ def G_train(x,y_train):
             
             # u,noise,n_phy,res
             
-            _,_,phyloss1  = n_phy_prob(x_col)
-            
+            u_col,_,n_phy,phyloss_1  = n_phy_prob(x_col)
+            fake_logits_col = D(torch.cat((x_col,u_col,n_phy),dim=1))
+
 
             # physics loss for boundary points 
-            
-            y_pred,G_noise,_ = n_phy_prob(x_i)
-            fake_logits_u = D(torch.cat((x_i,y_pred),dim=1))
+       
+            y_pred,G_noise,n_phy,phyloss2 = n_phy_prob(x_i)
+            fake_logits_u = D(torch.cat((x_i,y_pred,n_phy),dim=1))
 
             
             mse_loss = criterion_mse(y_pred,y_i)
             
-            adv_loss = generator_loss(fake_logits_u)
+            adv_loss = generator_loss(fake_logits_u,fake_logits_col)
             
-            phy_loss = (phyloss1**2).mean()
+            phy_loss = (phyloss_1**2).mean() 
             
             G_loss[i] = adv_loss + lambda_phy * phy_loss + mse_loss
         
@@ -333,7 +352,6 @@ def G_train(x,y_train):
     return G_loss
 
 
-#%% Q_net train 
 
 
 #%% 

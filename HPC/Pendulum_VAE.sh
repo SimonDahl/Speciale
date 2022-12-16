@@ -35,17 +35,17 @@ module load matplotlib/3.5.1-numpy-1.22.2-python-3.10.2
 
 ## Hvis man skal lave et loop hvor programmet modtager forskellige argumenter.
 
-for n_epochs in 100 200 500 800 
+for n_epochs in 100 1000 10000
 do
-	for z_dim_size in 3 4 
+	for z_dim_size in 3 5
 	do
-		for lr in 5e-3 1e-4 5e-4 5e-5 1e-6  
+		for lr in 5e-3 0.001 0.0001
 		do
-		
- 
-		python3 Pendulum_VAE.py --n_epochs=$n_epochs --z_dim_size=$z_dim_size --lr=$lr
+			for n_sols in 100 1000
+			do
+				python3 Pendulum_VAE.py --n_epochs=$n_epochs --z_dim_size=$z_dim_size --lr=$lr --n_sols=$n_sols
+			done
 		done
-		
-	done 
+	done
 done
 ## Har man oprettet jobbet som en liste af jobs my_job_name[1-100] så kan man bruge dette indeks fra 1 til 100 som argument til sit program med argumentet $LSB_JOBINDEX

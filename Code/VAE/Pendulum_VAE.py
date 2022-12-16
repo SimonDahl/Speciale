@@ -9,7 +9,7 @@ from torch.autograd import Variable
 from torchvision.utils import save_image
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-from scipy.integrate import odeint
+from scipy.integrate import solve_ivp
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -17,61 +17,69 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--n_epochs',help='Number of epochs',type=int)
 parser.add_argument('--z_dim_size',help='Number of z dims',type=int)
 parser.add_argument('--lr',help='Learning rate',type=float)
+parser.add_argument('--n_sols',help='number of solutions',type=int)
 
 
 args = parser.parse_args()
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+HPC = True 
 
+if HPC == True:
+    n_epochs = args.n_epochs
+    z_dim_size = args.z_dim_size
+    lr = args.lr   
+    n_sols = args.n_sols
+    bs = n_sols // 10
+else:
+    n_epochs = 10
+    z_dim_size = 3
+    lr = 3e-4
+    n_sols = 10
+    bs = 1
+          
 
-#%%
-# batch size 
-bs = 500
-n_epochs = args.n_epochs
-#n_epochs = 1
-# latent space size 
-z_dim_size = args.z_dim_size
-#z_dim_size = 3
-
-lr = args.lr   #3e-4
-#lr = 3e-4
-timesteps = 100
-n_data = 1000
-
+timesteps = 250
+time_limit = 10
+#
 np.random.seed(12345)
 
 #%% Generate data 
+def sho(t,y):
+    m = np.random.uniform(0.1, 2)
+    k = np.random.uniform(3, 10)
+    c = np.random.uniform(0, 1)
+    solution = (y[1],(-(c/m)*y[1]-(k/m)*y[0]))
+    return solution
 
-def pend(x, t, m, k,c):
-    x1,x2 = x
-    dxdt = [x2, (-(c/m)*x2 - (k/m)*x1)]
-    return dxdt
+train = np.zeros((n_sols,timesteps))
+t = np.linspace(0,time_limit,timesteps)
 
-#(y[1],(-(c/m)*y[1]-(k/m)*y[0]))
-t = np.linspace(0, 5, timesteps)
-   
-x = np.zeros((n_data,timesteps))
+for i in range(n_sols):
+    y_init = [np.random.uniform(1,10),np.random.uniform(-2,2)]
+    solution = solve_ivp(sho, [0,timesteps], y0 = y_init, t_eval = t)
+    sol_data = solution.y[0]
+    train[i,:] = sol_data
+print('### DATA GENERATION COMPLETE ###')
 
-for i in range(n_data):
-    x0 = [np.random.uniform(0,np.pi),np.random.uniform(0,1)]
-    m = np.random.uniform(0.1,2)
-    k = np.random.uniform(3,10)
-    c = 1
-    sol = odeint(pend, x0, t, args=(m, k,c))
-    x[i,:] = sol[:,0]
-print('Data generation complete')
 
-for i in range(n_data):
-    plt.plot(t,x[i,:])
+plt.figure()
+for i in range(n_sols):
+    plt.plot(t,train[i,:])
 plt.title('Range of solutions')
-plt.show()
+plt.xlabel('t [s]')
+if HPC == True: 
+    plt.savefig('./output/VAE/Pendulum/'+'Range_of_soltions'+'.png')
+else: 
+    plt.show()
+
 
 
 #%%
-""" 
+
 # split into test, validation, and training sets
-x_temp, x_test, _, _ = train_test_split(x, x, test_size=0.05)
+x_temp, x_test, _, _ = train_test_split(train, train, test_size=0.05)
 x_train, x_valid, _, _ = train_test_split(x_temp,
                                           x_temp,
                                           test_size=0.1)
@@ -220,7 +228,7 @@ dp = data_point[0][0,:]
 yp1 = dp.cpu().detach().numpy()
 
 
-
+plt.figure()
 plt.plot(t,yp1,label='Original')
 
 encoded = vae.encoder(dp)
@@ -236,8 +244,10 @@ y = decoded.detach().numpy()
 
 plt.plot(t,y.flatten(),label='Decoded')
 plt.legend(loc='upper right')
-plt.savefig('./output/VAE/Pendulum/'+'Encode_Decode n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+'.png')
-#plt.show()
+if HPC == True: 
+    plt.savefig('./output/VAE/Pendulum/'+'Encode_Decode n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+' n_sols '+str(n_sols)+'.png')
+else:
+    plt.show()
 
 
 with torch.no_grad():
@@ -265,8 +275,24 @@ with torch.no_grad():
 
 
     fig.suptitle('n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr),fontsize="x-large")
-    plt.savefig('./output/VAE/Pendulum/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+'.png')
-     
     #plt.show()
+    if HPC == True:
+        plt.savefig('./output/VAE/Pendulum/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+' n_sols '+str(n_sols)+'.png')
+    else:
+        plt.show()
 
- """
+with torch.no_grad():
+    for i in range(5):
+        z = Variable(torch.randn(z_dim_size).to(device))
+        if torch.cuda.is_available():
+            sample = vae.decoder(z).cuda()
+        else:
+            sample = vae.decoder(z)
+        y = sample.cpu().detach().numpy()
+        plt.plot(t,y.flatten())
+    if HPC == True:
+        plt.savefig('./output/VAE/Pendulum/'+'Same plot n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+' n_sols '+str(n_sols)+'.png')
+    else:
+        plt.show()
+    
+        
