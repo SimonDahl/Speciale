@@ -328,14 +328,16 @@ print("Time elapsed during the calculation:", end - start)
 with torch.no_grad():
     
     
-    for i in range(1):
+    for i in range(5):
         z = Variable(torch.randn(X_star_norm.shape).to(device))
         generated = G(torch.cat((X_star_norm,z),dim=1))
         y = generated.cpu().detach().numpy()
-        plt.plot(t,y,'--',label='Generated solution '+str(i+1))
+        plt.plot(t,y,'--')
     plt.plot(t,sol_data,label='Real solution')
     plt.scatter(x_b,y_b,color='red',label='Training points')
     plt.legend(loc = 'upper right')
+    plt.xlabel('Time')
+    plt.ylabel('Position')
     plt.show()
 
     

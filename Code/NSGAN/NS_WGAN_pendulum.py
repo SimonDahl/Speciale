@@ -1,3 +1,6 @@
+
+# denne kode er brugt til sektion NSGAN for at lave pendul løsnig. og er brugt som kode eksempel 
+
 # prerequisites
 from ast import arg
 from tkinter import X

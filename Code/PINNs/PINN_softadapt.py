@@ -21,18 +21,18 @@ from scipy.integrate import odeint, solve_ivp
 
 
 
-n_neurons = 75
+n_neurons = 30
 lr = 0.001 # learing rate
 lr2 = 0.0001 # learning rate 2 is switch is used
-lr_switch = 200000 # n_epochs before changing lr 
+lr_switch = 8000 # n_epochs before changing lr 
 criterion = nn.MSELoss() # loss function 
-n_epochs = 2000
+n_epochs = 10000
 n_col = 3000 # number of collocation points 
 SoftAdapt_beta = 0.1 # soft adabt hyberparamter 
 
 
 
-SoftAdapt_start = 200 # soft adabt start epoch 
+SoftAdapt_start = 100 # soft adabt start epoch 
 n_soft = 10 # n loss epochs used for soft adabt
 
 
@@ -58,14 +58,14 @@ sol_data = solution.y[0]
 sol_plot = np.array([sol_data])  
 
 
-u_b = [sol_data[0],sol_data[70],sol_data[180]]
+u_b = [sol_data[0]]
 
 n_b = len(u_b)
   
 u_b = np.array([u_b])
   
   
-t_b = [t[0],t[70],t[180]]
+t_b = [t[0]]
 t_b = np.array([t_b])
 
 
@@ -99,7 +99,7 @@ class PINN(nn.Module):
         y = torch.tanh(self.fc1(y)) 
         y = torch.tanh(self.fc2(y))
         y = torch.tanh(self.fc3(y))
-        y = torch.tanh(self.fc4(y)) 
+       # y = torch.tanh(self.fc4(y)) 
       
         return self.fc5(y) 
   
@@ -174,7 +174,7 @@ def train(x_col,u_b,epoch):
     
     if epoch > SoftAdapt_start: # start soft adabt 
         a_u,a_f =SoftAdapt(MSE_us,MSE_fs)
-        loss = a_u * MSE_u + a_f *MSE_f
+        loss = a_u * MSE_u +  a_f *MSE_f
         
     loss.backward()
     
@@ -206,17 +206,26 @@ with torch.no_grad():
     y = net(t_plot) # get final approximation from PINN 
      
     plt.plot(t,sol_data,label='Real solution')
-    plt.scatter(t_b,u_b,color='red',label='Data points')
+    plt.scatter(t_b,u_b,color='red',label='Data point')
     plt.plot(t,y,'--',label='PINN solution')
     plt.title('Damped Harmonic Oscillator')
     plt.legend()
+    plt.xlabel('Time')
+    plt.ylabel('Position')
     plt.show()
 
-""" e_plot = list(range(n_epochs))
+    print(y.detach().numpy().shape)
+    print(sol_data.shape)
+    MSE = np.square(np.subtract(y.detach().numpy()[:,0],sol_data)).mean()
+    print('MSE loss '+ str(MSE))
+
+e_plot = list(range(n_epochs))
 
 plt.plot(e_plot,losses)
 plt.yscale('log')
 plt.title('Loss vs epoch (y log scale)')
+plt.xlabel('Epoch')
+plt.ylabel('MSE')
 plt.show()
 
 with torch.no_grad():
@@ -225,5 +234,7 @@ with torch.no_grad():
     plt.plot(e_plot,MSE_fs,label='MSE_f')
     plt.yscale('log')
     plt.legend()
+    plt.xlabel('Epoch')
+    plt.ylabel('MSE')
     plt.title('MSE_f and MSE_u losses vs epoch (y log scale)')
-    plt.show() """
+    plt.show() 

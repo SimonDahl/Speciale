@@ -8,6 +8,7 @@ from torch.autograd import Variable
 from torchvision.utils import save_image
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+import time 
 
 import argparse
 """ 
@@ -26,7 +27,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # batch size 
 bs = 10
 #n_epochs = args.n_epochs
-n_epochs = 6000
+n_epochs = 1000
+
 # latent space size 
 #z_dim_size = args.z_dim_size
 z_dim_size = 3
@@ -40,15 +42,15 @@ lr = 0.001
 #%%
 
 
-n_data = 100           # number of waves
-timesptes = 100             # time steps pr wave 
+n_data = 100          # number of waves
+timesptes = 500            # time steps pr wave 
 
 t = np.linspace(0,1,timesptes)  # time stamps in s
 x = np.zeros((n_data,timesptes))
 phase = np.random.uniform(-np.pi, np.pi, size=n_data)
 for i in range(n_data):
-    #f= 1 
-    f = np.random.uniform(1,5) # frequency in Hz  
+    f= 1 
+  #  f = np.random.uniform(1,5) # frequency in Hz  
     A = np.random.uniform(1,5) # random amplitude
     x[i,:] = A*np.sin(2*np.pi*f*t + phase[i] )
 
@@ -64,7 +66,8 @@ n_train = len(x_train)
 n_valid = len(x_valid)
 n_test = len(x_test)
 
-#print(n_train)
+print(n_test)
+
 
 
 train_set = torch.from_numpy(x_train)
@@ -92,14 +95,14 @@ class VAE(nn.Module):
         self.fc4_mu = nn.Linear(h_dim2, z_dim)
         # decoder part
         self.fc_z = nn.Linear(z_dim, h_dim2)
-        self.fc5 = nn.Linear(h_dim2, h_dim1)
-      #  self.fc6 = nn.Linear(h_dim2, h_dim1)
+        #self.fc5 = nn.Linear(h_dim3, h_dim2)
+        self.fc6 = nn.Linear(h_dim2, h_dim1)
         self.fc7 = nn.Linear(h_dim1, x_dim)
         
     def encoder(self, x):
         h = F.leaky_relu(self.fc1(x))
         h = F.leaky_relu(self.fc2(h))
-       # h = F.leaky_relu(self.fc3(h))
+      #  h = F.leaky_relu(self.fc3(h))
         return self.fc4_sigma(h), self.fc4_mu(h) # mu, log_var
     
     def sampling(self, mu, log_var):
@@ -109,8 +112,8 @@ class VAE(nn.Module):
         
     def decoder(self, z):
         h = F.leaky_relu(self.fc_z(z))
-        h = F.leaky_relu(self.fc5(h))
-      #  h = F.leaky_relu(self.fc6(h))
+      #  h = F.leaky_relu(self.fc5(h))
+        h = F.leaky_relu(self.fc6(h))
         return (self.fc7(h)) 
     
     def forward(self, x):
@@ -124,7 +127,7 @@ h3 = h2//2
 h4 = h3//2
 
 vae = VAE(x_dim=timesptes, h_dim1=h1, h_dim2=h2,h_dim3=h3,h_dim4=h4, z_dim=z_dim_size)
-
+print(vae)
 
 if torch.cuda.is_available():
     vae.cuda()
@@ -139,6 +142,9 @@ def loss_function(recon_x, x, mu, log_var):
     return MSE + KLD
   
 #%%
+
+
+start = time.time()
 
 def train(epoch):
     vae.train()
@@ -180,6 +186,9 @@ for epoch in range(1, n_epochs):
     train(epoch)
     test()
 
+stop = time.time()
+
+print('Time ussage',stop-start)
 
 
 
@@ -214,8 +223,10 @@ y = decoded.detach().numpy()
 
 
 plt.plot(t,y.flatten(),label='Decoded')
-plt.legend(loc='upper right')
-plt.savefig('./Simon_VAE_Res/'+'A_f_small_network '+'Encode_Decode n_epochs ' +str(n_epochs)+' lr '+str(lr)+' n_data '+str(n_data)+'.png')
+plt.legend(loc='upper left')
+plt.xlabel('Time')
+plt.ylabel('Position')
+#plt.savefig('./Simon_VAE_Res/'+'A_f_small_network '+'Encode_Decode n_epochs ' +str(n_epochs)+' lr '+str(lr)+' n_data '+str(n_data)+'.png')
 plt.show()
 
 
@@ -244,8 +255,15 @@ with torch.no_grad():
             ax[i,j].set_title('Sample ' + str(c))
             c+= 1
 
+    
+   # ax[0,0].set_xlabel('Time')
+    ax[0,0].set_ylabel('Position')
+    ax[1,0].set_xlabel('Time')
+    ax[1,0].set_ylabel('Position')
 
-    fig.suptitle('n_epochs ' +str(n_epochs)+' lr '+str(lr)+' n_data '+str(n_data),fontsize="x-large")
-    plt.savefig('./Simon_VAE_Res/'+'A_f_small_network '+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+' n_data '+str(n_data)+'.png')
+
+   # fig.suptitle('n_epochs ' +str(n_epochs)+' lr '+str(lr)+' n_data '+str(n_data),fontsize="x-large")
+   # plt.savefig('./Simon_VAE_Res/'+'A_f_small_network '+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+' n_data '+str(n_data)+'.png')
+
     plt.show()
 

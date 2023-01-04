@@ -21,18 +21,18 @@ from scipy.integrate import odeint, solve_ivp
 
 
 
-n_neurons = 75
+n_neurons = 30
 lr = 0.001 # learing rate
 lr2 = 0.0001 # learning rate 2 is switch is used
 lr_switch = 200000 # n_epochs before changing lr 
 criterion = nn.MSELoss() # loss function 
-n_epochs = 2000
-n_col = 3000 # number of collocation points 
+n_epochs = 15000
+n_col = 1500 # number of collocation points 
 SoftAdapt_beta = 0.1 # soft adabt hyberparamter 
 
 
 
-SoftAdapt_start = 200 # soft adabt start epoch 
+SoftAdapt_start = 1000 # soft adabt start epoch 
 n_soft = 10 # n loss epochs used for soft adabt
 
 
@@ -94,8 +94,8 @@ class PINN(nn.Module):
         self.fc5 = nn.Linear(n_neurons,1)
     
         #self.m = torch.nn.parameter.Parameter(torch.from_numpy(np.array([1])).float())
-        self.m = torch.nn.parameter.Parameter(torch.from_numpy(np.array([1])).float(), requires_grad=True)
-        self.k = torch.nn.parameter.Parameter(torch.from_numpy(np.array([1])).float(), requires_grad=True)
+        self.m = torch.nn.parameter.Parameter(torch.from_numpy(np.array([1])).float(), requires_grad=True) # discovereble parameter m
+        self.k = torch.nn.parameter.Parameter(torch.from_numpy(np.array([1])).float(), requires_grad=True) # discovereble parameter k 
        
     # forward method
     def forward(self,y):
@@ -229,8 +229,12 @@ with torch.no_grad():
     plt.scatter(t_b,u_b,color='red',label='Data points')
     plt.plot(t,y,'--',label='PINN solution')
     plt.title('Damped Harmonic Oscillator unkown m,k')
+    plt.xlabel('Time')
+    plt.ylabel('Position')
     plt.legend()
     plt.show()
+    MSE = np.square(np.subtract(y.detach().numpy()[:,0],sol_data)).mean()
+    print('MSE '+str(MSE))
      
 e_plot = list(range(n_epochs))
 with torch.no_grad():
@@ -240,13 +244,17 @@ with torch.no_grad():
     plt.plot(e_plot,k_true_list,label='K True',color='blue')
     plt.plot(e_plot,k_approx,'--',label='K approx',color='blue')
     plt.legend()
+    plt.xlabel('Epochs')
+    plt.ylabel('Value')
     plt.title('Data driven discovery of parameters m and k')
     plt.show()
  
+print('M approx '+str(m_approx[-1]))
+print('K approx '+str(k_approx[-1]))
  
  
 
-plt.plot(e_plot,losses)
+""" plt.plot(e_plot,losses)
 plt.yscale('log')
 plt.title('Loss vs epoch (y log scale)')
 plt.show()
@@ -258,4 +266,7 @@ with torch.no_grad():
     plt.yscale('log')
     plt.legend()
     plt.title('MSE_f and MSE_u losses vs epoch (y log scale)')
+    plt.xlabel('Epochs')
+    plt.ylabel('MSE error')
     plt.show() 
+ """

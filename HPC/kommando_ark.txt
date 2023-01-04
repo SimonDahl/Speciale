@@ -7,7 +7,7 @@ login
 
 fil transfer : 
 
-scp "C:\Users\Ejer\OneDrive - Danmarks Tekniske Universitet\Dokumenter\GitHub\Speciale\sml\" s162695@transfer.gbar.dtu.dk:~/speciale
+scp "C:\Users\Simon\OneDrive - Danmarks Tekniske Universitet\Speciale\Speciale\Code\VAE\Pendulum_VAE.py" s162695@transfer.gbar.dtu.dk:~/speciale
 
 fill fra hpc til pc:
 

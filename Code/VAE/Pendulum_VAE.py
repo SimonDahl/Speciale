@@ -24,7 +24,7 @@ args = parser.parse_args()
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-HPC = True 
+HPC = True
 
 if HPC == True:
     n_epochs = args.n_epochs
@@ -67,8 +67,8 @@ print('### DATA GENERATION COMPLETE ###')
 plt.figure()
 for i in range(n_sols):
     plt.plot(t,train[i,:])
-plt.title('Range of solutions')
-plt.xlabel('t [s]')
+plt.xlabel('Time')
+plt.ylabel('Position')
 if HPC == True: 
     plt.savefig('./output/VAE/Pendulum/'+'Range_of_soltions'+'.png')
 else: 
@@ -244,6 +244,8 @@ y = decoded.detach().numpy()
 
 plt.plot(t,y.flatten(),label='Decoded')
 plt.legend(loc='upper right')
+plt.xlabel('Time')
+plt.ylabel('Position')
 if HPC == True: 
     plt.savefig('./output/VAE/Pendulum/'+'Encode_Decode n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+' n_sols '+str(n_sols)+'.png')
 else:
@@ -269,12 +271,14 @@ with torch.no_grad():
             else:
                 sample = vae.decoder(z)
             y = sample.cpu().detach().numpy()
+          
             ax[i,j].plot(t,y.flatten())
-            ax[i,j].set_title('Sample ' + str(c))
             c+= 1
+    ax[0,0].set_xlabel('Time')
+    ax[0,0].set_ylabel('Position')
+    ax[1,0].set_xlabel('Time')
+    ax[1,0].set_ylabel('Position')
 
-
-    fig.suptitle('n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr),fontsize="x-large")
     #plt.show()
     if HPC == True:
         plt.savefig('./output/VAE/Pendulum/'+'n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+' n_sols '+str(n_sols)+'.png')
@@ -282,6 +286,7 @@ with torch.no_grad():
         plt.show()
 
 with torch.no_grad():
+    plt.figure()   
     for i in range(5):
         z = Variable(torch.randn(z_dim_size).to(device))
         if torch.cuda.is_available():
@@ -289,6 +294,8 @@ with torch.no_grad():
         else:
             sample = vae.decoder(z)
         y = sample.cpu().detach().numpy()
+        plt.xlabel('Time')
+        plt.ylabel('Position')
         plt.plot(t,y.flatten())
     if HPC == True:
         plt.savefig('./output/VAE/Pendulum/'+'Same plot n_epochs ' +str(n_epochs)+' z_dim_size '+str(z_dim_size)+' lr '+str(lr)+' n_sols '+str(n_sols)+'.png')
