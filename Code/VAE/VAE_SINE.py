@@ -49,14 +49,23 @@ t = np.linspace(0,1,timesptes)  # time stamps in s
 x = np.zeros((n_data,timesptes))
 phase = np.random.uniform(-np.pi, np.pi, size=n_data)
 for i in range(n_data):
-    f= 1 
-  #  f = np.random.uniform(1,5) # frequency in Hz  
+    #f= 1 
+    f = np.random.uniform(1,5) # frequency in Hz  
     A = np.random.uniform(1,5) # random amplitude
     x[i,:] = A*np.sin(2*np.pi*f*t + phase[i] )
 
 
-#%%
 
+
+plt.plot(t,x[0,:],label='1st Signal')
+plt.plot(t,x[1,:],label='2nd Signal')
+plt.xlabel('Time')
+plt.ylabel('Position')
+plt.legend()
+plt.show()
+
+#%%
+""" 
 # split into test, validation, and training sets
 x_temp, x_test, _, _ = train_test_split(x, x, test_size=0.05)
 x_train, x_valid, _, _ = train_test_split(x_temp,
@@ -267,3 +276,4 @@ with torch.no_grad():
 
     plt.show()
 
+ """
