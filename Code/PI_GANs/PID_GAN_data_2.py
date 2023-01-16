@@ -38,7 +38,7 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 400
+n_epochs = 200
 
 
 SoftAdapt_start = 300

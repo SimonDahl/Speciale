@@ -35,7 +35,7 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 1000
+n_epochs = 200
 
 gen_epoch = 5
 lambda_phy = 1
@@ -54,7 +54,7 @@ k = 5
 
 for i in range(n_data):
     #y_b[i] = np.random.uniform(3,6)
-    y_b[i] = 3
+    y_b[i] = np.random.uniform(1,15)
 
 x_col = np.linspace(0, time_limit, n_col)
 

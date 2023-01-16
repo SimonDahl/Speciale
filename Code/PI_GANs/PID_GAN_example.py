@@ -24,7 +24,7 @@ from scipy.integrate import odeint, solve_ivp
 n_data = 5
 bs = 1
 time_limit = 5
-n_col = 3000
+n_col = 1500
 
 
 
@@ -37,7 +37,7 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 2000
+n_epochs = 400
 
 gen_epoch = 5
 lambda_phy = 1

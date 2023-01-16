@@ -26,7 +26,7 @@ from scipy.integrate import odeint, solve_ivp
 
 time_limit = 6 # time limit for ODE solver
 timesteps = 200 # number of timesteps in ODE solver solution 
-n_col = 1500 # number of collocation points
+n_col = 2000 # number of collocation points
 
 n_neurons = 50 # number of neruons in hidden layer(s)
 lr = 0.001 # learning rate
@@ -37,9 +37,11 @@ y_dim = 1
 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 4000 # umber of epochs
+n_epochs = 1500 # umber of epochs
 
-gen_epoch = 5 # number of G epochs pr D epoch
+
+np.random.seed(12309)
+gen_epoch = 3 # number of G epochs pr D epoch
 n_gens = 30 # number of predicted solutions used for uncertanty quantification 
 lambda_phy = 1 # physics loss weight 
 lambda_q = 0.4 # Q_new weigth 
@@ -75,7 +77,7 @@ sol_plot = np.array([sol_data])
 
 
 # idx of training points chosen - int values from t_start to time_limit
-idx = [0,3,10,15,80,85,100,102,175,185]
+idx = [0,3,15,30,45,70,80,102,145,185]
 n_data = len(idx)
 
 
@@ -96,7 +98,9 @@ if add_noise == True:
     noise = np.random.normal(0,noise_level,timesteps)
     noisy_signal = sol_data + noise
     u_data = np.array(noisy_signal)[idx]
-    #plt.plot(t,noisy_signal)
+    #plt.xlabel('Time')
+   # plt.ylabel('Position')
+   #plt.plot(t,noisy_signal)
     #plt.show()
 
 
@@ -324,7 +328,7 @@ with torch.no_grad():
     plt.plot(t,sol_data,label='Real solution')
     if add_noise == True:
         plt.scatter(t_data,u_data,color='red',label='Noisy Training points')
-        plt.title('Pendulum solution with UQ - '+str(noise_level*100)+'% Noise level' )
+      #  plt.title('Pendulum solution with UQ - '+str(noise_level*100)+'% Noise level' )
     else:
         plt.scatter(t_data,u_data,color='red',label='Training points')
     

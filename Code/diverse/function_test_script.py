@@ -18,9 +18,10 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from scipy.integrate import odeint
 
 
-# Initialize list
-Lst = [50, 70, 30, 20, 90, 10, 50]
- 
-# Display list
-print(Lst[-2:])
+A = torch.zeros(3,3)
 
+
+""" row1 = torch.tensor([1,3,4])
+
+A[0,:] = row1 """
+print(A)

@@ -26,7 +26,7 @@ from scipy.integrate import odeint, solve_ivp
 
 time_limit = 6 # time limit for ODE solver
 timesteps = 200 # number of timesteps in ODE solver solution 
-n_col = 1500 # number of collocation points
+n_col = 2000 # number of collocation points
 
 n_neurons = 50 # number of neruons in hidden layer(s)
 lr = 0.001 # learning rate
@@ -37,14 +37,15 @@ y_dim = 1
 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs =2000 # umber of epochs
+n_epochs =1500 # umber of epochs
 
 gen_epoch = 3 # number of G epochs pr D epoch
-n_gens = 50 # number of predicted solutions used for uncertanty quantification 
+n_gens = 30 # number of predicted solutions used for uncertanty quantification 
 lambda_phy = 1 # physics loss weight 
 lambda_q = 0.4 # Q_new weigth 
 
 add_noise = True
+np.random.seed(12309)
 noise_level = 0.05 # choose ratio of noise Gaussian noise
 mu_noise =0.0 # mean noise value
 
@@ -53,10 +54,6 @@ def gaussian_noise(x,mu,std):
     x_noisy = x + noise
     return x_noisy
     
-
- 
-
-
 
 
 #%% Calculate traning data 
@@ -79,7 +76,7 @@ sol_plot = np.array([sol_data])
 
 
 # idx of training points chosen - int values from t_start to time_limit
-idx = [0,3,10,15,80,85,100,102,175,185]
+idx = [0,3,15,30,45,70,80,102,145,185]
 n_data = len(idx)
 
 # selec traning data
@@ -300,7 +297,7 @@ with torch.no_grad():
     
     if add_noise == True:
         plt.scatter(t_data,u_data,color='red',label='Noisy Training points')
-        plt.title('Pendulum solution with UQ - '+str(noise_level*100)+'% Noise level' )
+      #  plt.title('Pendulum solution with UQ - '+str(noise_level*100)+'% Noise level' )
     else:
         plt.scatter(t_data,u_data,color='red',label='Training points')
     std = 2.0*np.sqrt(u_preds_var) # 2 std band

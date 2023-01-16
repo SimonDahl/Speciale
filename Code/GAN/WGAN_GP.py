@@ -36,7 +36,7 @@ if HPC:
     n_epochs = args.n_epochs
     w_gan_gp = args.w_gan_gp
 else:
-    n_sols = 500
+    n_sols = 30
     n_epochs = 1
     w_gan_gp = 1
     
@@ -62,13 +62,16 @@ lambda_GP = 1
 np.random.seed(12345)
 
 
+m = 2
+k = 5
+c = 1
 
 #%%
 
 def sho(t,y):
-    m = np.random.uniform(0.1,2)
-    k = np.random.uniform(3,10)
-    c = np.random.uniform(0,1)
+  #  m = np.random.uniform(0.1,2)
+   # k = np.random.uniform(3,10)
+    #c = np.random.uniform(0,1)
     solution = (y[1],(-(c/m)*y[1]-(k/m)*y[0]))
     return solution
 
@@ -77,7 +80,7 @@ train = np.zeros((n_sols,timesteps))
 
 print('### DATA GENERATION Started ###')
 for i in range(n_sols):
-    y_init = [np.random.uniform(0,5),np.random.uniform(0,2)]
+    y_init = [np.random.uniform(1,5),np.random.uniform(-2,2)]
     solution = solve_ivp(sho, [0,timesteps], y0 = y_init, t_eval = t)
     sol_data = solution.y[0]
     train[i,:] = sol_data
@@ -88,6 +91,8 @@ print('### DATA GENERATION COMPLETE ###')
 for i in range(n_sols):
     plt.plot(t,train[i,:])
 plt.title('Range of solutions')
+plt.xlabel('Time')
+plt.ylabel('Postion')
 plt.show()
 
 

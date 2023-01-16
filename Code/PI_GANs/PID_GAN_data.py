@@ -37,7 +37,7 @@ x_dim = 1
 y_dim = 1 
 criterion = nn.BCELoss() 
 criterion_mse = nn.MSELoss()
-n_epochs = 1
+n_epochs = 200
 
 gen_epoch = 5
 lambda_phy = 1
