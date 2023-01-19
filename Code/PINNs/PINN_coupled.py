@@ -21,18 +21,18 @@ from scipy.integrate import odeint, solve_ivp
 
 
 
-n_neurons = 75
+n_neurons = 30
 lr = 0.001 # learing rate
 lr2 = 0.0001 # learning rate 2 is switch is used
-lr_switch = 200000 # n_epochs before changing lr 
+lr_switch = 2500 # n_epochs before changing lr 
 criterion = nn.MSELoss() # loss function 
-n_epochs = 400
+n_epochs = 20000
 n_col = 3000 # number of collocation points 
 SoftAdapt_beta = 0.1 # soft adabt hyberparamter 
 
 
 
-SoftAdapt_start = 100 # soft adabt start epoch 
+SoftAdapt_start = 2000 # soft adabt start epoch 
 n_soft = 10 # n loss epochs used for soft adabt
 
 
@@ -51,27 +51,38 @@ def sho(t,y):
     solution = (y[1],(-(c/m)*y[1]-(k/m)*y[0])) # damped harmonic oscillator 
     return solution
     
-y_init = [3,1] # initial condition
+y_init = [3,0] # initial condition
 solution = solve_ivp(sho, [0,timesteps], y0 = y_init, t_eval = t) 
 sol_data = solution.y[0]
 sol_data_dot = solution.y[1]
 
 
 sol_plot = np.array([sol_data])  
+sol_dot = np.array([sol_data_dot])
 
 
-u_b = [sol_data[0],sol_data[70],sol_data[180]]
-u_b_dot = [sol_data_dot[0],sol_data_dot[70],sol_data_dot[180]]
+
+u_b = [sol_data[0]]
+u_b_dot = [sol_data_dot[0]]
+
+
 
 n_b = len(u_b)
   
 u_b = np.array([u_b])
 u_b_dot = np.array([u_b_dot])
   
-t_b = [t[0],t[70],t[180]]
+t_b = [t[0]]
 t_b = np.array([t_b])
 
 
+
+""" plt.plot(t,sol_plot[-1,:],label='u')
+plt.plot(t,sol_dot[-1,:],label='dot')
+plt.scatter(t_b,u_b_dot,label='dot')
+plt.scatter(t_b,u_b,label='u')
+plt.legend()
+plt.show() """
 
 
 x_col = np.linspace(0, time_limit, n_col)
@@ -100,10 +111,10 @@ class PINN(nn.Module):
        
     # forward method
     def forward(self,y):
-        y = torch.tanh(self.fc1(y)) 
-        y = torch.tanh(self.fc2(y))
-        y = torch.tanh(self.fc3(y))
-        y = torch.tanh(self.fc4(y)) 
+        y = F.softplus(self.fc1(y)) 
+        y = F.softplus(self.fc2(y))
+        y = F.softplus(self.fc3(y))
+        y = F.softplus(self.fc4(y)) 
       
         return self.fc5(y) 
   
@@ -113,22 +124,47 @@ net = PINN().to(device)
 optimizer = optim.Adam(net.parameters(), lr=lr)
 
 
+
+def real_sol(t):
+    t4 = torch.tensor(4)
+    t39 = torch.tensor(39)
+    sol = (torch.exp(-t/t4)*(torch.sqrt(t39)*torch.sin((torch.sqrt(t39)*t)/t4)+t39*torch.cos((torch.sqrt(t39)*t)/t4)))/13
+    sol_dot = -(torch.exp(-t/t4)*(torch.sqrt(t39)*torch.sin(torch.sqrt(t39)*t/t4)+t39*torch.cos(torch.sqrt(t39)*t/t4)))/52 \
+         + (torch.exp(-t/t4)*((t39*torch.cos(torch.sqrt(t39)*t/t4)/t4)-(t39*torch.sqrt(t39)*torch.sin(torch.sqrt(t39)*t/t4)/t4)))/13
+    return sol,sol_dot
+
+
+""" pp,pp2 = real_sol(x_col.detach().numpy())
+plt.plot(x_col.detach().numpy(),pp)
+plt.plot(x_col.detach().numpy(),pp2)
+plt.show()
+ """
 def compute_residuals(x):
     
     output = net(x) # calculate u
     x1 = output[:,0]
     x2 = output[:,1]
+
+    real,real_dot =  real_sol(x)
+    
+
+
     x1 = x1.reshape(n_col,1)
     x2 = x2.reshape(n_col,1)
+
+   
     
-    #  solution = (y[1],(-(c/m)*y[1]-(k/m)*y[0]))
+        #  solution = (y[1],(-(c/m)*y[1]-(k/m)*y[0]))
                   
     x1_t  = torch.autograd.grad(x1, x, torch.ones_like(x), retain_graph=True,create_graph=True)[0]# computes du/dx
     x2_t = torch.autograd.grad(x2,  x, torch.ones_like(x),retain_graph=True ,create_graph=True)[0]# computes d^2u/dx^2
    
     res1 = x2-x1_t
-    res2 = (-c/m)*x2+(k/m)*x2 -x2_t
-   
+    res2 = ((-c/m)*x2-(k/m)*x1) -x2_t
+
+    #res1 = real -x1
+    #res2 = real_dot-x2
+
     return res1,res2 
 
 
@@ -177,11 +213,13 @@ def train(x_col,u_b,u_b_dot,epoch):
     # boundary/data points  loss 
    
     output = net(t_b)
-    net_u_b = output[:,0]
-    net_u_b_dot = output[:,1]
+    #net_u_b = output[:,0]
+    #net_u_b_dot = output[:,1]
+  
+    x1 = output[:,0]
+    x2 = output[:,1]
     
-    
-    MSE_u = criterion(net_u_b,u_b) + criterion(net_u_b_dot,u_b_dot)
+    MSE_u = criterion(x1,u_b) + criterion(x2,u_b_dot)
     
     # collocation loss 
     
@@ -193,12 +231,14 @@ def train(x_col,u_b,u_b_dot,epoch):
     MSE_f_1 = criterion(res1,col_target)
     MSE_f_2 = criterion(res2,col_target)
     # loss normlaized to amount of poins 
-    loss = MSE_u/n_b + MSE_f_1 /n_col + MSE_f_2/n_col
+    loss = MSE_f_1  + MSE_f_2 + MSE_u
     
-    MSE_us.append(MSE_u/n_b)
-    MSE_f_1s.append(MSE_f_1/n_col)
-    MSE_f_2s.append(MSE_f_2 / n_col)
+   # MSE_us.append(MSE_u/n_b)
+    MSE_f_1s.append(MSE_f_1)
+    MSE_f_2s.append(MSE_f_2)
+    MSE_us.append(MSE_u)
     
+
     if epoch > SoftAdapt_start: # start soft adabt 
         a_u,a_f_1,a_f_2 =SoftAdapt(MSE_us,MSE_f_1s,MSE_f_2s)
         loss = a_u * MSE_u + a_f_1 *MSE_f_1 + a_f_2 * MSE_f_2
@@ -235,22 +275,20 @@ with torch.no_grad():
     plt.plot(t,sol_data,label='Real solution')
     plt.scatter(t_b,u_b,color='red',label='Data points')
     plt.plot(t,y,'--',label='PINN solution')
-    plt.title('Damped Harmonic Oscillator')
+    plt.xlabel('Time')
+    plt.ylabel('Position')
     plt.legend()
+    MSE = np.square(np.subtract(y.detach().numpy(),sol_data)).mean()
+    print('MSE '+str(MSE))
     plt.show()
 
-""" e_plot = list(range(n_epochs))
+
+e_plot = list(range(n_epochs))
 
 plt.plot(e_plot,losses)
 plt.yscale('log')
-plt.title('Loss vs epoch (y log scale)')
+plt.xlabel('Epochs')
+plt.ylabel('MSE')
 plt.show()
 
-with torch.no_grad():
 
-    plt.plot(e_plot,MSE_us,label='MSE_u')
-    plt.plot(e_plot,MSE_fs,label='MSE_f')
-    plt.yscale('log')
-    plt.legend()
-    plt.title('MSE_f and MSE_u losses vs epoch (y log scale)')
-    plt.show() """

@@ -32,31 +32,27 @@ criterion_MSE = nn.MSELoss() # loss function
 criterion_BCE = nn.BCELoss() 
 lambda_phy = 0.1
 D_epochs = 1
-
+p_save = 1 # save lambda values at every epoch % p_save interval 
 
 
 #%% HPC and data load 
 
-HPC = True
+HPC = False 
 
 if HPC == True:
     print('Started code')
-    n_epochs = 200000
-    switch = 100000
-    lr2 = 0.0001
-    N_train = 500
+    n_epochs = 100000
+    N_train = 1000
     data = scipy.io.loadmat('cylinder_nektar_wake.mat')
 if HPC == False: 
     n_epochs = 100
-    switch = 50
-    lr2 = 0.0001
     N_train = 50
     
     data = scipy.io.loadmat(r"C:\Users\Simon\OneDrive - Danmarks Tekniske Universitet\Speciale\Speciale\Code\NSGAN\cylinder_nektar_wake.mat")
 
 bs = N_train//10 
-lambda_1 = 1
-lambda_2 = 0.01
+lambda_1_true = 1
+lambda_2_true = 0.01
 
 
 #%% Ready data 
@@ -123,7 +119,10 @@ class Generator(nn.Module):
         self.fc10 = wn(nn.Linear(n_neurons, n_neurons))
         self.fc11 = wn(nn.Linear(n_neurons, n_neurons))
         self.fc12 = wn(nn.Linear(n_neurons, g_output_dim))
-        
+
+        self.lambda1 = torch.nn.parameter.Parameter(torch.from_numpy(np.array([0.5])).float(), requires_grad=True)
+        self.lambda2 = torch.nn.parameter.Parameter(torch.from_numpy(np.array([0.5])).float(), requires_grad=True)
+                
       
     # forward method
     def forward(self,y):
@@ -139,6 +138,10 @@ class Generator(nn.Module):
         y = F.silu(self.fc10(y))
         y = F.silu(self.fc11(y))
         return self.fc12(y) 
+
+    
+    def getPDEParam(self):
+        return (self.lambda1,self.lambda2)
 
 class Discriminator(nn.Module):
     def __init__(self, d_input_dim):
@@ -178,8 +181,8 @@ def predict(x,y,t):
     
     u = torch.autograd.grad(psi, y, torch.ones_like(y), retain_graph=True,create_graph=True)[0]# 
     v = -torch.autograd.grad(psi, x, torch.ones_like(x), retain_graph=True,create_graph=True)[0]#
-
-    return p,u,v
+    lambda1,lambda2 = G.getPDEParam()
+    return p,u,v,lambda1,lambda2
 
 def compute_residuals(x, y, t):
 
@@ -208,6 +211,8 @@ def compute_residuals(x, y, t):
 
     p_x = torch.autograd.grad(p, x, torch.ones_like(x), retain_graph=True,create_graph=True)[0]# 
     p_y = torch.autograd.grad(p, y, torch.ones_like(y), retain_graph=True,create_graph=True)[0]# 
+
+    lambda_1, lambda_2 = G.getPDEParam()
   
     f_u = u_t + lambda_1*(u*u_x + v*u_y) + p_x - lambda_2*(u_xx + u_yy) 
     f_v = v_t + lambda_1*(u*v_x + v*v_y) + p_y - lambda_2*(v_xx + v_yy)
@@ -234,7 +239,7 @@ def G_train(x,y,t,p,u,v):
     G.zero_grad()
     
     # MSE loss on training points
-    p_fake,u_fake,v_fake = predict(x,y,t)
+    p_fake,u_fake,v_fake,_,_ = predict(x,y,t)
     
     MSE_p = criterion_MSE(p,p_fake)
     MSE_u = criterion_MSE(u,u_fake)
@@ -265,7 +270,7 @@ def D_train(x,y,t,p,u,v):
     for d_epoch in range(D_epochs):
         D.zero_grad()
         
-        p_fake,u_fake,v_fake = predict(x,y,t)
+        p_fake,u_fake,v_fake,_,_ = predict(x,y,t)
         d_input = rearange(x,y,t,p_fake,u_fake,v_fake)    
         fake_prob = D(d_input)
         
@@ -282,13 +287,13 @@ def D_train(x,y,t,p,u,v):
 
 #%%& Training loop 
 
+
+lambda1_list = []
+lambda2_list = []
+
+
 for epoch in range(1, n_epochs+1):
     D_losses, G_losses, MSE_losses = [], [], []
-
-    if epoch > switch:
-        G_optimizer = optim.Adam(G.parameters(), lr=lr2)
-        D_optimizer = optim.Adam(D.parameters(), lr=lr2)
-
 
     for batch_idx in range(N_train//bs):
         idx = np.random.choice(N_train, bs, replace=False)
@@ -302,6 +307,11 @@ for epoch in range(1, n_epochs+1):
         G_losses.append(G_loss)
         MSE_losses.append(MSE_loss)
         D_losses.append(D_train(x_batch,y_batch,t_batch,p_batch,u_batch,v_batch))
+    
+    if epoch % p_save == 0: 
+        _,_, _,lambda1_approx,lambda2_approx = predict(x_train, y_train, t_train)
+        lambda1_list.append(lambda1_approx)
+        lambda2_list.append(lambda2_approx)
 
     print('[%d/%d]: loss_d: %.3f, loss_g: %.3f, loss_MSE: %.3f' % (
             (epoch), n_epochs, torch.mean(torch.FloatTensor(D_losses)), torch.mean(torch.FloatTensor(G_losses)),torch.mean(torch.FloatTensor(MSE_losses))))
@@ -326,7 +336,7 @@ u_star = Variable(torch.from_numpy(u_star).float(), requires_grad=True).to(devic
 v_star = Variable(torch.from_numpy(v_star).float(), requires_grad=True).to(device)
 p_star = Variable(torch.from_numpy(p_star).float(), requires_grad=True).to(device)
 
-p_pred,u_pred, v_pred = predict(x_star, y_star, t_star)
+p_pred,u_pred, v_pred,lambda1_approx,lambda2_approx = predict(x_star, y_star, t_star)
 
 # Error u,v,p 
 
@@ -357,7 +367,7 @@ def plot_solution(X_star, u_star, index):
     if HPC == False: 
         plt.show()
     if HPC == True: 
-        plt.savefig('./output/NSGAN/'+'Plot ' +str(index)+'.png')
+        plt.savefig('./output/NSGAN/'+'Plot Discovery ' +str(index)+'.png')
          
 
 #%% Plot and print results 
@@ -374,10 +384,16 @@ with torch.no_grad():
     error_u = np.linalg.norm(u_star-u_pred,2)/np.linalg.norm(u_star,2)
     error_v = np.linalg.norm(v_star-v_pred,2)/np.linalg.norm(v_star,2)
     error_p = np.linalg.norm(p_star-p_pred,2)/np.linalg.norm(p_star,2)
+    error_lambda1 =np.abs(lambda_1_true-lambda1_approx)
+    error_lambda2 = np.abs(lambda_2_true-lambda2_approx)
         
     print('Error u: %e' % (error_u))    
     print('Error v: %e' % (error_v))    
-    print('Error p: %e' % (error_p))    
+    print('Error p: %e' % (error_p)) 
+    print('Error lambda_1: %e' % (error_lambda1))
+    print('Error lambda_2: %e' % (error_lambda2))
+    print('lambda_1 Approx: %e' % (lambda1_approx))
+    print('lambda_2 Approx: %e' % (lambda2_approx))     
 
      # Predict for plotting
     lb = X_star.min(0)
@@ -392,9 +408,27 @@ with torch.no_grad():
     PP_star = griddata(X_star, p_pred.flatten(), (X, Y), method='cubic')
     P_exact = griddata(X_star, p_star.flatten(), (X, Y), method='cubic')
 
+   
+
     plot_solution(X_star, p_pred, 3)    
     plot_solution(X_star, p_star, 4)
     plot_solution(X_star, p_star - p_pred, 5)
     
+    e_plot = list(range(len(lambda1_list)))
+    lambda1_true_list = np.repeat(lambda_1_true,len(lambda1_list))
+    lambda2_true_list = np.repeat(lambda_2_true,len(lambda1_list))
 
+    plt.plot(e_plot,lambda1_true_list,label='lambda_1 True',color='red')
+    plt.plot(e_plot,lambda1_list,'--',label='lambda_1 approx',color='red')
+    plt.plot(e_plot,lambda2_true_list,label='lambda_2 True',color='blue')
+    plt.plot(e_plot,lambda2_list,'--',label='lambda_2 approx',color='blue')
+    plt.xlabel('Epochs')
+    plt.ylabel('Value')
+    plt.legend()
+    plt.title('Data driven discovery of parameters lambda_1 and lambda_2')
+    
+    if HPC == True: 
+        plt.savefig('./output/NSGAN/'+'Plot Discovery params '+'.png')
+    else:
+        plt.show()
 

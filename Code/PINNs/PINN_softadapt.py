@@ -24,15 +24,15 @@ from scipy.integrate import odeint, solve_ivp
 n_neurons = 30
 lr = 0.001 # learing rate
 lr2 = 0.0001 # learning rate 2 is switch is used
-lr_switch = 8000 # n_epochs before changing lr 
+lr_switch = 80000 # n_epochs before changing lr 
 criterion = nn.MSELoss() # loss function 
-n_epochs = 10000
+n_epochs = 20000
 n_col = 3000 # number of collocation points 
 SoftAdapt_beta = 0.1 # soft adabt hyberparamter 
 
 
 
-SoftAdapt_start = 100 # soft adabt start epoch 
+SoftAdapt_start = 2000 # soft adabt start epoch 
 n_soft = 10 # n loss epochs used for soft adabt
 
 
@@ -112,6 +112,7 @@ optimizer = optim.Adam(net.parameters(), lr=lr)
 def compute_residuals(x):
     
     u = net(x) # calculate u
+
  
     u_t  = torch.autograd.grad(u, x, torch.ones_like(u), retain_graph=True,create_graph=True)[0]# computes du/dx
     u_tt = torch.autograd.grad(u_t,  x, torch.ones_like(u_t),retain_graph=True ,create_graph=True)[0]# computes d^2u/dx^2
@@ -167,10 +168,10 @@ def train(x_col,u_b,epoch):
     
     MSE_f = criterion(res,col_target)
     # loss normlaized to amount of poins 
-    loss = MSE_u/n_b + MSE_f /n_col 
+    loss = MSE_u + MSE_f  
     
-    MSE_us.append(MSE_u/n_b)
-    MSE_fs.append(MSE_f/n_col)
+    MSE_us.append(MSE_u)
+    MSE_fs.append(MSE_f)
     
     if epoch > SoftAdapt_start: # start soft adabt 
         a_u,a_f =SoftAdapt(MSE_us,MSE_fs)

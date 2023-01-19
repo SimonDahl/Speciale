@@ -32,14 +32,14 @@ criterion = nn.MSELoss()
 HPC = True
 
 if HPC == True:
-    n_epochs = 5
-    N_train = 500
+    n_epochs = 300000
+    N_train = 5000
     data = scipy.io.loadmat('cylinder_nektar_wake.mat')
 if HPC == False: 
     n_epochs = 1
     N_train = 100
-    data = scipy.io.loadmat(r"C:\Users\Simon\OneDrive - Danmarks Tekniske Universitet\Speciale\Speciale\Code\NSGAN\PINN\cylinder_nektar_wake.mat")
-
+    data = scipy.io.loadmat(r"C:\Users\Simon\OneDrive - Danmarks Tekniske Universitet\Speciale\Speciale\Code\NSGAN\cylinder_nektar_wake.mat")
+ 
 
 lambda_1 = 1
 lambda_2 = 0.01
@@ -78,12 +78,15 @@ y_train = y[idx,:]
 t_train = t[idx,:]
 u_train = u[idx,:]
 v_train = v[idx,:]
+p_train = p[idx,:]
+
 
 x_train = Variable(torch.from_numpy(x_train).float(), requires_grad=True).to(device)
 y_train = Variable(torch.from_numpy(y_train).float(), requires_grad=True).to(device)
 t_train = Variable(torch.from_numpy(t_train).float(), requires_grad=True).to(device)
 u_train = Variable(torch.from_numpy(u_train).float(), requires_grad=True).to(device)
 v_train = Variable(torch.from_numpy(v_train).float(), requires_grad=True).to(device)
+p_train = Variable(torch.from_numpy(p_train).float(), requires_grad=True).to(device)
 
 
 
@@ -99,7 +102,9 @@ class PINN(nn.Module):
         self.fc5 = nn.Linear(n_neurons,n_neurons)
         self.fc6 = nn.Linear(n_neurons,n_neurons)
         self.fc7 = nn.Linear(n_neurons,n_neurons)
-        self.fc8 = nn.Linear(n_neurons,2)
+        self.fc8 = nn.Linear(n_neurons,n_neurons)
+        self.fc9 = nn.Linear(n_neurons,n_neurons)
+        self.fc10 = nn.Linear(n_neurons,2)
         
        
     # forward method
@@ -110,8 +115,10 @@ class PINN(nn.Module):
         y = torch.tanh(self.fc4(y)) 
         y = torch.tanh(self.fc5(y)) 
         y = torch.tanh(self.fc6(y)) 
-        y = torch.tanh(self.fc7(y)) 
-        return self.fc8(y) 
+        y = torch.tanh(self.fc7(y))
+        y = torch.tanh(self.fc8(y))
+        y = torch.tanh(self.fc9(y)) 
+        return self.fc10(y) 
   
     
    
@@ -165,24 +172,23 @@ def compute_residuals(x, y, t):
     
     return u, v, p, f_u, f_v
 
-def train(x, y, t, u, v):
+def train(x, y, t, u, v,p):
     optimizer.zero_grad()
       
-   # lb = X.min(0)
-    #ub = X.max(0)
-            
 
     u_pred, v_pred, p_pred, f_u_pred, f_v_pred = compute_residuals(x,y,t)
 
     MSE_u_u = criterion(u,u_pred)
     MSE_u_v = criterion(v,v_pred)
+    MSE_u_p = criterion(p,p_pred)
 
     f_target = torch.zeros_like(f_u_pred)
 
     MSE_f_u = criterion(f_target,f_u_pred)
     MSE_f_v = criterion(f_target,f_v_pred)
+   
 
-    loss = MSE_u_u + MSE_u_v + MSE_f_u + MSE_f_v
+    loss = MSE_u_u + MSE_u_v + MSE_f_u + MSE_f_v + MSE_u_p
 
     loss.backward()
     optimizer.step()
@@ -193,7 +199,7 @@ losses = []
 
 for epoch in range(1, n_epochs+1):
     
-    losses.append(train(x_train, y_train, t_train, u_train, v_train))
+    losses.append(train(x_train, y_train, t_train, u_train, v_train,p_train))
 
     print('[%d/%d]: loss: %.4f' % ((epoch), n_epochs, torch.mean(torch.FloatTensor(losses))))
     
@@ -245,6 +251,14 @@ def plot_solution(X_star, u_star, index):
 
 
 with torch.no_grad():
+
+    u_star = u_star.cpu().detach().numpy()
+    u_pred = u_pred.cpu().detach().numpy()
+    v_star = v_star.cpu().detach().numpy()
+    v_pred = v_pred.cpu().detach().numpy()
+    p_star = p_star.cpu().detach().numpy()
+    p_pred = p_pred.cpu().detach().numpy()
+
     error_u = np.linalg.norm(u_star-u_pred,2)/np.linalg.norm(u_star,2)
     error_v = np.linalg.norm(v_star-v_pred,2)/np.linalg.norm(v_star,2)
     error_p = np.linalg.norm(p_star-p_pred,2)/np.linalg.norm(p_star,2)
