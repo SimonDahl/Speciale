@@ -32,7 +32,7 @@ mpl.rcParams.update(mpl.rcParamsDefault)
 #%% Hyperparameters 
 
 np.random.seed(1234)
-n_neurons = 75
+n_neurons = 40
 n_neurons_d = 128
 lr = 0.001
 criterion_MSE = nn.MSELoss() # loss function
@@ -40,7 +40,9 @@ criterion_BCE = nn.BCELoss()
 lambda_phy = 0.5
 D_epochs = 1
 
-
+SoftAdapt_beta = 0.1 # soft adabt hyberparamter 
+ # soft adabt start epoch 
+n_soft = 10 # n loss epochs used for soft adabt
 
 #%% HPC and data load 
 
@@ -48,17 +50,18 @@ HPC = True
 
 if HPC == True:
     print('Started code')
-    n_epochs = 25000
-    switch = 20000
+    n_epochs = 50000
+    switch = 45000
     lr2 = 0.0005
-    N_train = 5000
+    N_train = 2500
+    SoftAdapt_start = 15000
     data = scipy.io.loadmat('cylinder_nektar_wake.mat')
 if HPC == False: 
-    n_epochs = 20
+    n_epochs = 50000
     switch = 10000
     lr2 = 0.0001
-    N_train = 50
-    
+    N_train = 100
+    SoftAdapt_start = 100
     data = scipy.io.loadmat(r"C:\Users\Simon\OneDrive - Danmarks Tekniske Universitet\Speciale\Speciale\Code\NSGAN\cylinder_nektar_wake.mat")
 
 bs = N_train//10 
@@ -177,6 +180,41 @@ D_optimizer = optim.Adam(D.parameters(), lr=lr)
 
 #%% define functions 
 
+def SoftAdapt(MSE_1,MSE_2,MSE_3,MSE_4,MSE_5):
+    eps = 10e-8 # for numeric stability 
+    
+    s_1 = np.zeros(n_soft-1) # allocate s_i - the loss rate of change 
+    s_2 = np.zeros(n_soft-1)
+    s_3 = np.zeros(n_soft-1)
+    s_4 = np.zeros(n_soft-1)
+    s_5 = np.zeros(n_soft-1)
+
+  
+    for i in range(1,(n_soft-1)): # calculate s_i
+        s_1[i] = MSE_1[i] - MSE_1[i-1] 
+        s_2[i] = MSE_2[i] - MSE_2[i-1] 
+        s_3[i] = MSE_3[i] - MSE_3[i-1] 
+        s_4[i] = MSE_4[i] - MSE_4[i-1] 
+        s_5[i] = MSE_5[i] - MSE_5[i-1] 
+         
+            
+    Beta = SoftAdapt_beta # beta hyper parameter 
+    
+    denominator = (np.exp(Beta*(s_1[-1]-np.max(s_1)))+np.exp(Beta*(s_2[-1]-np.max(s_2)))+np.exp(Beta*(s_3[-1]-np.max(s_3)))\
+                +np.exp(Beta*(s_4[-1]-np.max(s_4)))+np.exp(Beta*(s_5[-1]-np.max(s_5)))+eps)
+
+    # calculate a_i weigths 
+    a_1 = (np.exp(Beta*(s_1[-1]-np.max(s_1))))/denominator
+    a_2 = (np.exp(Beta*(s_2[-1]-np.max(s_2))))/denominator
+    a_3 = (np.exp(Beta*(s_3[-1]-np.max(s_3))))/denominator
+    a_4 = (np.exp(Beta*(s_4[-1]-np.max(s_4))))/denominator
+    a_5 = (np.exp(Beta*(s_5[-1]-np.max(s_5))))/denominator
+
+    return a_1,a_2,a_3,a_4,a_5
+        
+
+
+
 def predict(x,y,t):
 
     psi_and_p = G(torch.concat((x,y,t),dim=1))
@@ -236,7 +274,11 @@ def rearange(x,y,t,p,u,v):
 
 #%% Generator traning loop 
 
-def G_train(x,y,t,p,u,v):
+
+L1,L2,L3,L4,L5 = [],[],[],[],[]
+
+
+def G_train(x,y,t,p,u,v,epoch):
     
     G.zero_grad()
     
@@ -256,8 +298,26 @@ def G_train(x,y,t,p,u,v):
       
     d_input = rearange(x,y,t,p_fake,u_fake,v_fake)
     L_adv =torch.mean(-torch.log(D(d_input)+1e-8)) # Advisarial loss 
-           
-    G_loss = L_adv + lambda_phy * L_phy + MSE_p + MSE_u + MSE_v
+
+
+    if epoch >= SoftAdapt_start - n_soft :
+        L1.append(L_adv)
+        L2.append(L_phy)
+        L3.append(MSE_p)
+        L4.append(MSE_u)
+        L5.append(MSE_v)
+
+    if epoch >= SoftAdapt_start:
+        a_1,a_2,a_3,a_4,a_5= SoftAdapt(L1,L2,L3,L4,L5)
+        G_loss = a_1 *L_adv + lambda_phy * a_2 * L_phy + a_3 * MSE_p + a_4 * MSE_u + a_5 * MSE_v
+        del L1[0] # remove first item to reduce memoery use 
+        del L2[0]
+        del L3[0]
+        del L4[0]
+        del L5[0]
+
+    else: 
+        G_loss = L_adv + lambda_phy * L_phy + MSE_p + MSE_u + MSE_v
     
     G_loss.backward()
     G_optimizer.step()
@@ -292,20 +352,7 @@ def D_train(x,y,t,p,u,v):
 for epoch in range(1, n_epochs+1):
     D_losses, G_losses, MSE_losses = [], [], []
 
-  #  if epoch == switch:
-   #     G_optimizer = optim.Adam(G.parameters(), lr=lr2)
-    #    D_optimizer = optim.Adam(D.parameters(), lr=lr2)
-
-
-    #for batch_idx in range(N_train//bs):
-     #   idx = np.random.choice(N_train, bs, replace=False)
-      #  x_batch = x_train[idx,:]
-       # y_batch = x_train[idx,:]
-        #t_batch = x_train[idx,:]
-      #  u_batch = x_train[idx,:]
-      #  v_batch = x_train[idx,:]
-      #  p_batch = x_train[idx,:]
-    G_loss,MSE_loss =  G_train(x_train,y_train,t_train,p_train,u_train,v_train)
+    G_loss,MSE_loss =  G_train(x_train,y_train,t_train,p_train,u_train,v_train,epoch)
     G_losses.append(G_loss)
     MSE_losses.append(MSE_loss)
     D_losses.append(D_train(x_train,y_train,t_train,p_train,u_train,v_train))
@@ -366,7 +413,7 @@ def plot_solution(X_star, u_star, index):
     if HPC == False: 
         plt.show()
     if HPC == True: 
-        plt.savefig('./output/NSGAN/'+'Plot ' +str(index)+'.png')
+        plt.savefig('./output/NSGAN_soft/'+'Plot ' +str(index)+'.png')
          
 
 
@@ -523,7 +570,7 @@ with torch.no_grad():
     ax.set_zlim3d(r3)
     axisEqual3D(ax)
     if HPC == True:
-        plt.savefig('./output/NSGAN/'+'3D'+'.png')
+        plt.savefig('./output/NSGAN_soft/'+'3D'+'.png')
     else:
         plt.show()
     # savefig('./figures/NavierStokes_data') 
@@ -563,7 +610,7 @@ with torch.no_grad():
     ax.set_aspect('equal', 'box')
     ax.set_title('Exact pressure', fontsize = 10)
     if HPC == True:
-        plt.savefig('./output/NSGAN/'+'Predict_vs_exact'+'.png')
+        plt.savefig('./output/NSGAN_soft/'+'Predict_vs_exact'+'.png')
     else:
         plt.show()
     

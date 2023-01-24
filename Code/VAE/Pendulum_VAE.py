@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from scipy.integrate import solve_ivp
 import argparse
+import time 
 
 parser = argparse.ArgumentParser()
 
@@ -24,7 +25,7 @@ args = parser.parse_args()
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-HPC = True
+HPC = False
 
 if HPC == True:
     n_epochs = args.n_epochs
@@ -33,11 +34,11 @@ if HPC == True:
     n_sols = args.n_sols
     bs = n_sols // 10
 else:
-    n_epochs = 10
-    z_dim_size = 3
-    lr = 3e-4
-    n_sols = 10
-    bs = 1
+    n_epochs = 1000
+    z_dim_size = 5
+    lr = 0.005
+    n_sols = 100
+    bs = 10
           
 
 timesteps = 250
@@ -169,6 +170,9 @@ def loss_function(recon_x, x, mu, log_var):
   
 #%%
 
+start = time.time()
+
+
 def train(epoch):
     vae.train()
     train_loss = 0
@@ -210,7 +214,8 @@ for epoch in range(1, n_epochs):
     test()
 
 
-
+stop = time.time()
+print('Time ussage',stop-start)
 
 #%%
 
