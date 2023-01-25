@@ -32,7 +32,7 @@ mpl.rcParams.update(mpl.rcParamsDefault)
 #%% Hyperparameters 
 
 np.random.seed(1234)
-n_neurons = 40
+n_neurons = 60
 n_neurons_d = 128
 lr = 0.001
 criterion_MSE = nn.MSELoss() # loss function
@@ -50,8 +50,8 @@ HPC = True
 
 if HPC == True:
     print('Started code')
-    n_epochs = 50000
-    switch = 45000
+    n_epochs = 60000
+    switch = 50000
     lr2 = 0.0005
     N_train = 2500
     SoftAdapt_start = 15000

@@ -48,8 +48,8 @@ HPC = True
 
 if HPC == True:
     print('Started code')
-    n_epochs = 25000
-    switch = 20000
+    n_epochs = 45000
+    switch = 30000
     lr2 = 0.0005
     N_train = 5000
     data = scipy.io.loadmat('cylinder_nektar_wake.mat')
