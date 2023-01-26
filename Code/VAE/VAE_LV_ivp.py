@@ -70,7 +70,7 @@ for i in range(n_sols):
 print(x.T.shape)
 
 
-
+""" 
 plt.figure()
 for i in range(n_sols):
     xplot = x[i,:]
@@ -82,7 +82,31 @@ if HPC == True:
     plt.savefig('./output/VAE/Pendulum/'+'Range_of_soltions'+'.png')
 else: 
     plt.show()
+ """
 
+
+plt.figure()
+for i in range(n_sols):
+    xplot = x[i,:]
+    plt.plot(t,xplot[:t_gen])
+    
+plt.xlabel('Time')
+plt.ylabel('Population')
+if HPC == True: 
+    plt.savefig('./output/VAE/Pendulum/'+'Range_of_soltions'+'.png')
+else: 
+    plt.show()
+
+plt.figure()
+for i in range(n_sols):
+    xplot = x[i,:]
+    plt.plot(t,xplot[t_gen:])
+plt.xlabel('Time')
+plt.ylabel('Population')
+if HPC == True: 
+    plt.savefig('./output/VAE/Pendulum/'+'Range_of_soltions'+'.png')
+else: 
+    plt.show()
 
 
 """ 

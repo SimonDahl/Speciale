@@ -32,23 +32,23 @@ criterion_MSE = nn.MSELoss() # loss function
 criterion_BCE = nn.BCELoss() 
 lambda_phy = 0.1
 D_epochs = 1
-p_save = 1 # save lambda values at every epoch % p_save interval 
+p_save = 100 # save lambda values at every epoch % p_save interval 
 
 
 #%% HPC and data load 
 
-HPC = False 
+HPC = True 
 
 if HPC == True:
     print('Started code')
-    n_epochs = 100000
-    N_train = 1000
+    n_epochs = 25000
+    N_train = 5000
     data = scipy.io.loadmat('cylinder_nektar_wake.mat')
 if HPC == False: 
-    n_epochs = 100
-    N_train = 50
+    n_epochs = 1000
+    N_train = 100
     
-    data = scipy.io.loadmat(r"C:\Users\Simon\OneDrive - Danmarks Tekniske Universitet\Speciale\Speciale\Code\NSGAN\cylinder_nektar_wake.mat")
+    data = scipy.io.loadmat(r"/Users/andreasgleerup/Desktop/Speciale/Code/NSGAN/cylinder_nektar_wake.mat")
 
 bs = N_train//10 
 lambda_1_true = 1
@@ -182,7 +182,8 @@ def predict(x,y,t):
     u = torch.autograd.grad(psi, y, torch.ones_like(y), retain_graph=True,create_graph=True)[0]# 
     v = -torch.autograd.grad(psi, x, torch.ones_like(x), retain_graph=True,create_graph=True)[0]#
     lambda1,lambda2 = G.getPDEParam()
-    return p,u,v,lambda1,lambda2
+    return p,u,v,lambda1.cpu().detach().numpy(),lambda2.cpu().detach().numpy()
+    
 
 def compute_residuals(x, y, t):
 
@@ -221,8 +222,8 @@ def compute_residuals(x, y, t):
 
 
 def rearange(x,y,t,p,u,v):
-    img = torch.zeros(bs,1,3,3)
-    for i in range(bs):
+    img = torch.zeros(N_train,1,3,3)
+    for i in range(N_train):
         row1 = torch.tensor([x[i],y[i],t[i]])
         row2 = torch.tensor([p[i],u[i],v[i]])
         img[i,0,0,:] = row1
@@ -295,18 +296,18 @@ lambda2_list = []
 for epoch in range(1, n_epochs+1):
     D_losses, G_losses, MSE_losses = [], [], []
 
-    for batch_idx in range(N_train//bs):
+    '''for batch_idx in range(N_train//bs):
         idx = np.random.choice(N_train, bs, replace=False)
         x_batch = x_train[idx,:]
         y_batch = x_train[idx,:]
         t_batch = x_train[idx,:]
         u_batch = x_train[idx,:]
         v_batch = x_train[idx,:]
-        p_batch = x_train[idx,:]
-        G_loss,MSE_loss =  G_train(x_batch,y_batch,t_batch,p_batch,u_batch,v_batch)
-        G_losses.append(G_loss)
-        MSE_losses.append(MSE_loss)
-        D_losses.append(D_train(x_batch,y_batch,t_batch,p_batch,u_batch,v_batch))
+        p_batch = x_train[idx,:]'''
+    G_loss,MSE_loss =  G_train(x_train,y_train,t_train,p_train,u_train,v_train)
+    G_losses.append(G_loss)
+    MSE_losses.append(MSE_loss)
+    D_losses.append(D_train(x_train,y_train,t_train,p_train,u_train,v_train))
     
     if epoch % p_save == 0: 
         _,_, _,lambda1_approx,lambda2_approx = predict(x_train, y_train, t_train)
@@ -408,13 +409,7 @@ with torch.no_grad():
     PP_star = griddata(X_star, p_pred.flatten(), (X, Y), method='cubic')
     P_exact = griddata(X_star, p_star.flatten(), (X, Y), method='cubic')
 
-   
-
-    plot_solution(X_star, p_pred, 3)    
-    plot_solution(X_star, p_star, 4)
-    plot_solution(X_star, p_star - p_pred, 5)
-    
-    e_plot = list(range(len(lambda1_list)))
+    e_plot = list(range(0, len(lambda1_list)*p_save, p_save))
     lambda1_true_list = np.repeat(lambda_1_true,len(lambda1_list))
     lambda2_true_list = np.repeat(lambda_2_true,len(lambda1_list))
 
@@ -426,9 +421,14 @@ with torch.no_grad():
     plt.ylabel('Value')
     plt.legend()
     plt.title('Data driven discovery of parameters lambda_1 and lambda_2')
-    
     if HPC == True: 
         plt.savefig('./output/NSGAN/'+'Plot Discovery params '+'.png')
     else:
         plt.show()
+
+    plot_solution(X_star, p_pred, 3)    
+    plot_solution(X_star, p_star, 4)
+    plot_solution(X_star, p_star - p_pred, 5)
+    
+    
 
