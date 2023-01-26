@@ -1,6 +1,6 @@
 # Speciale
 
-All code used to create results for Master's thesis. 
+All code used to create results for Master's thesis. Files in /code are as follows: 
 
 /GAN - All different standard GAN trained on ODEs 
 
