@@ -32,7 +32,7 @@ mpl.rcParams.update(mpl.rcParamsDefault)
 #%% Hyperparameters 
 
 np.random.seed(1234)
-n_neurons = 60
+n_neurons = 30
 n_neurons_d = 128
 lr = 0.001
 criterion_MSE = nn.MSELoss() # loss function
@@ -50,11 +50,11 @@ HPC = True
 
 if HPC == True:
     print('Started code')
-    n_epochs = 25000
-    switch = 18000
+    n_epochs = 30000
+    switch = 40000
     lr2 = 0.0005
     N_train = 5000
-    SoftAdapt_start = 2000
+    SoftAdapt_start = 5000
     data = scipy.io.loadmat('cylinder_nektar_wake.mat')
 if HPC == False: 
     n_epochs = 50000

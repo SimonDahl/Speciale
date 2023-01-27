@@ -18,10 +18,9 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from scipy.integrate import odeint
 
 
-A = torch.zeros(3,3)
+A = np.array([1,1,1])
+B = np.array([1.1,1.1,1.1])
 
+error = np.linalg.norm(A-B,2)/np.linalg.norm(A,2)
 
-""" row1 = torch.tensor([1,3,4])
-
-A[0,:] = row1 """
-print(A)
+print(error)
